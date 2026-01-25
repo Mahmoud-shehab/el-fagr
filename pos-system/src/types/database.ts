@@ -311,7 +311,7 @@ export type Database = {
       users: { Row: User; Insert: Partial<User>; Update: Partial<User> }
       roles: { Row: Role; Insert: Partial<Role>; Update: Partial<Role> }
       products: { Row: Product; Insert: Partial<Product>; Update: Partial<Product> }
-      categories: { Row: Category; Insert: Partial<Category>; Update: Partial<Category> }
+      categories: { Row: Category; Insert: partial<Category>; Update: Partial<Category> }
       brands: { Row: Brand; Insert: Partial<Brand>; Update: Partial<Brand> }
       units: { Row: Unit; Insert: Partial<Unit>; Update: Partial<Unit> }
       customers: { Row: Customer; Insert: Partial<Customer>; Update: Partial<Customer> }
@@ -336,3 +336,6 @@ export type Database = {
     Enums: Record<string, never>
   }
 }
+
+// Helper type to extract table row types
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
