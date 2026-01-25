@@ -1,0 +1,275 @@
+import { useState, ChangeEvent } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { supabase } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
+import { Plus, Search, Edit, Trash2 } from 'lucide-react'
+
+interface ProductRow {
+  id: string
+  code: string
+  name: string
+  name_ar: string
+  barcode?: string
+  category_id?: string
+  brand_id?: string
+  unit_id?: string
+  purchase_price?: number
+  selling_price?: number
+  status?: string
+  category?: { name_ar?: string }
+  brand?: { name?: string }
+  unit?: { name_ar?: string }
+}
+
+interface CategoryRow { id: string; name_ar: string }
+interface BrandRow { id: string; name: string }
+interface UnitRow { id: string; name_ar: string }
+
+const emptyProduct = {
+  code: '', name: '', name_ar: '', barcode: '',
+  category_id: '', brand_id: '', unit_id: '',
+  purchase_price: 0, selling_price: 0
+}
+
+export default function Products() {
+  const [search, setSearch] = useState('')
+  const [showDialog, setShowDialog] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<typeof emptyProduct>(emptyProduct)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const { data: products, isLoading } = useQuery<ProductRow[]>({
+    queryKey: ['products', search],
+    queryFn: async () => {
+      let query = supabase
+        .from('products')
+        .select('*, category:categories(name_ar), brand:brands(name), unit:units(name_ar)')
+        .order('created_at', { ascending: false })
+      
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,barcode.ilike.%${search}%`)
+      }
+      
+      const { data } = await query.limit(50)
+      return (data || []) as ProductRow[]
+    },
+  })
+
+  const { data: categories } = useQuery<CategoryRow[]>({
+    queryKey: ['categories-list'],
+    queryFn: async () => {
+      const { data } = await supabase.from('categories').select('id, name_ar').eq('is_active', true)
+      return (data || []) as CategoryRow[]
+    },
+  })
+
+  const { data: brands } = useQuery<BrandRow[]>({
+    queryKey: ['brands-list'],
+    queryFn: async () => {
+      const { data } = await supabase.from('brands').select('id, name').eq('is_active', true)
+      return (data || []) as BrandRow[]
+    },
+  })
+
+  const { data: units } = useQuery<UnitRow[]>({
+    queryKey: ['units-list'],
+    queryFn: async () => {
+      const { data } = await supabase.from('units').select('id, name_ar').eq('is_active', true)
+      return (data || []) as UnitRow[]
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (editingId) {
+        await supabase.from('products').update(editingProduct).eq('id', editingId)
+      } else {
+        await supabase.from('products').insert({ ...editingProduct, status: 'active' })
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      setShowDialog(false)
+      setEditingProduct(emptyProduct)
+      setEditingId(null)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from('products').delete().eq('id', id)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+  })
+
+  const openEdit = (product: ProductRow) => {
+    setEditingId(product.id)
+    setEditingProduct({
+      code: product.code,
+      name: product.name,
+      name_ar: product.name_ar,
+      barcode: product.barcode || '',
+      category_id: product.category_id || '',
+      brand_id: product.brand_id || '',
+      unit_id: product.unit_id || '',
+      purchase_price: product.purchase_price || 0,
+      selling_price: product.selling_price || 0,
+    })
+    setShowDialog(true)
+  }
+
+  const openNew = () => {
+    setEditingId(null)
+    setEditingProduct(emptyProduct)
+    setShowDialog(true)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">المنتجات</h1>
+          <p className="text-muted-foreground">إدارة المنتجات والأصناف</p>
+        </div>
+        <Button onClick={openNew}>
+          <Plus className="h-4 w-4 ml-2" />
+          إضافة منتج
+        </Button>
+      </div>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">الكود *</label>
+              <Input value={editingProduct.code} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, code: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">الباركود</label>
+              <Input value={editingProduct.barcode} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, barcode: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">الاسم بالإنجليزية *</label>
+              <Input value={editingProduct.name} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, name: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">الاسم بالعربية *</label>
+              <Input value={editingProduct.name_ar} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, name_ar: e.target.value})} />
+            </div>
+            <div>
+              <label htmlFor="category-select" className="text-sm font-medium">التصنيف</label>
+              <select id="category-select" title="التصنيف" className="w-full h-10 border rounded-md px-3" value={editingProduct.category_id} onChange={(e: ChangeEvent<HTMLSelectElement>) => setEditingProduct({...editingProduct, category_id: e.target.value})}>
+                <option value="">اختر التصنيف</option>
+                {categories?.map(c => <option key={c.id} value={c.id}>{c.name_ar}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="brand-select" className="text-sm font-medium">الماركة</label>
+              <select id="brand-select" title="الماركة" className="w-full h-10 border rounded-md px-3" value={editingProduct.brand_id} onChange={(e: ChangeEvent<HTMLSelectElement>) => setEditingProduct({...editingProduct, brand_id: e.target.value})}>
+                <option value="">اختر الماركة</option>
+                {brands?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="unit-select" className="text-sm font-medium">الوحدة *</label>
+              <select id="unit-select" title="الوحدة" className="w-full h-10 border rounded-md px-3" value={editingProduct.unit_id} onChange={(e: ChangeEvent<HTMLSelectElement>) => setEditingProduct({...editingProduct, unit_id: e.target.value})}>
+                <option value="">اختر الوحدة</option>
+                {units?.map(u => <option key={u.id} value={u.id}>{u.name_ar}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">سعر الشراء</label>
+              <Input type="number" value={editingProduct.purchase_price} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, purchase_price: parseFloat(e.target.value) || 0})} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">سعر البيع</label>
+              <Input type="number" value={editingProduct.selling_price} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, selling_price: parseFloat(e.target.value) || 0})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="بحث بالاسم أو الكود أو الباركود..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pr-10"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-center py-8 text-muted-foreground">جاري التحميل...</p>
+          ) : !products?.length ? (
+            <p className="text-center py-8 text-muted-foreground">لا توجد منتجات</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-right py-3 px-2">الكود</th>
+                    <th className="text-right py-3 px-2">الاسم</th>
+                    <th className="text-right py-3 px-2">التصنيف</th>
+                    <th className="text-right py-3 px-2">الماركة</th>
+                    <th className="text-right py-3 px-2">سعر الشراء</th>
+                    <th className="text-right py-3 px-2">سعر البيع</th>
+                    <th className="text-right py-3 px-2">الحالة</th>
+                    <th className="text-right py-3 px-2">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-2 font-mono text-sm">{product.code}</td>
+                      <td className="py-3 px-2">{product.name_ar}</td>
+                      <td className="py-3 px-2">{product.category?.name_ar || '-'}</td>
+                      <td className="py-3 px-2">{product.brand?.name || '-'}</td>
+                      <td className="py-3 px-2">{formatCurrency(product.purchase_price || 0)}</td>
+                      <td className="py-3 px-2">{formatCurrency(product.selling_price || 0)}</td>
+                      <td className="py-3 px-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {product.status === 'active' ? 'نشط' : 'غير نشط'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(product)} title="تعديل">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product.id)} title="حذف">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
