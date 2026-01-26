@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 export default function Suppliers() {
   const [search, setSearch] = useState('')
   const [showDialog, setShowDialog] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const [formData, setFormData] = useState({
     name_ar: '',
     phone: '',
@@ -26,9 +28,15 @@ export default function Suppliers() {
   })
   const queryClient = useQueryClient()
 
-  const { data: suppliers, isLoading } = useQuery({
-    queryKey: ['suppliers', search],
+  const { data: suppliersData, isLoading } = useQuery({
+    queryKey: ['suppliers', search, currentPage],
     queryFn: async () => {
+      let countQuery = supabase.from('suppliers').select('*', { count: 'exact', head: true })
+      if (search) {
+        countQuery = countQuery.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,phone.ilike.%${search}%`)
+      }
+      const { count } = await countQuery
+
       let query = supabase
         .from('suppliers')
         .select('*')
@@ -38,10 +46,23 @@ export default function Suppliers() {
         query = query.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,phone.ilike.%${search}%`)
       }
       
-      const { data } = await query.limit(50)
-      return data || []
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      
+      return {
+        suppliers: data || [],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
   })
+
+  const suppliers = suppliersData?.suppliers || []
+  const totalPages = suppliersData?.totalPages || 1
+  const totalCount = suppliersData?.totalCount || 0
+
+  React.useEffect(() => { setCurrentPage(1) }, [search])
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -154,7 +175,11 @@ export default function Suppliers() {
           ) : !suppliers?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا يوجد موردين</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} مورد
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -213,6 +238,19 @@ export default function Suppliers() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>السابق</Button>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i
+                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">{pageNum}</Button>
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>التالي</Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>

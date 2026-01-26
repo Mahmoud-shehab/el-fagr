@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,18 +46,38 @@ export default function Transfers() {
   const [items, setItems] = useState<TransferItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState('')
   const [quantity, setQuantity] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const queryClient = useQueryClient()
 
-  const { data: transfers, isLoading } = useQuery<TransferRow[]>({
-    queryKey: ['transfers', search],
+  const { data: transfersData, isLoading } = useQuery({
+    queryKey: ['transfers', search, currentPage],
     queryFn: async () => {
+      let countQuery = supabase.from('stock_transfers').select('*', { count: 'exact', head: true })
+      if (search) countQuery = countQuery.ilike('transfer_number', `%${search}%`)
+      const { count } = await countQuery
+
       let query = supabase
         .from('stock_transfers')
         .select('*, from_branch:branches!stock_transfers_from_branch_id_fkey(name_ar), to_branch:branches!stock_transfers_to_branch_id_fkey(name_ar)')
         .order('created_at', { ascending: false })
       if (search) query = query.ilike('transfer_number', `%${search}%`)
-      const { data } = await query.limit(50)
-      return (data || []) as TransferRow[]
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      return {
+        transfers: (data || []) as TransferRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
+    },
+  })
+
+  const transfers = transfersData?.transfers || []
+  const totalPages = transfersData?.totalPages || 1
+  const totalCount = transfersData?.totalCount || 0
+
+  React.useEffect(() => { setCurrentPage(1) }, [search])
     },
   })
 
@@ -363,7 +383,11 @@ export default function Transfers() {
           ) : !transfers?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد تحويلات</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} تحويل
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead><tr className="border-b">
                   <th className="text-right py-3 px-2">رقم التحويل</th>
@@ -402,6 +426,19 @@ export default function Transfers() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>السابق</Button>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i
+                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">{pageNum}</Button>
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>التالي</Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>
