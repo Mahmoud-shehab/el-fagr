@@ -261,15 +261,24 @@ export default function POS() {
 
       // Update inventory - reduce quantities
       for (const item of cart) {
-        const { error: invError } = await supabase
+        // Get current quantity first
+        const { data: currentInv } = await supabase
           .from('inventory')
-          .update({ 
-            quantity: supabase.raw(`quantity - ${item.quantity}`) 
-          } as any)
+          .select('quantity')
           .eq('product_id', item.product.id)
           .eq('branch_id', selectedBranchId)
+          .single()
         
-        if (invError) console.error('Inventory update error:', invError)
+        if (currentInv) {
+          const newQuantity = (currentInv.quantity || 0) - item.quantity
+          const { error: invError } = await supabase
+            .from('inventory')
+            .update({ quantity: newQuantity })
+            .eq('product_id', item.product.id)
+            .eq('branch_id', selectedBranchId)
+          
+          if (invError) console.error('Inventory update error:', invError)
+        }
       }
 
       return sale
