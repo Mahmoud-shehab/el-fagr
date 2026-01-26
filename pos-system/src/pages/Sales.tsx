@@ -49,9 +49,11 @@ interface SaleRow {
   customer_name?: string
   total_amount?: number
   paid_amount?: number
+  remaining_amount?: number
   status?: string
   has_tax?: boolean
   payment_status?: string
+  is_lifted?: boolean
   customer?: { name?: string; name_ar?: string }
   branch?: { name_ar?: string }
 }
@@ -64,6 +66,7 @@ export default function Sales() {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [taxFilter, setTaxFilter] = useState<'all' | 'with_tax' | 'without_tax'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'credit'>('all')
+  const [liftedFilter, setLiftedFilter] = useState<'all' | 'lifted' | 'not_lifted'>('all')
   const [branchFilter, setBranchFilter] = useState<string>('all')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -83,7 +86,7 @@ export default function Sales() {
   })
 
   const { data: sales, isLoading } = useQuery({
-    queryKey: ['sales', search, taxFilter, paymentFilter, branchFilter],
+    queryKey: ['sales', search, taxFilter, paymentFilter, liftedFilter, branchFilter],
     queryFn: async () => {
       let query = supabase
         .from('sales')
@@ -112,11 +115,40 @@ export default function Sales() {
       } else if (paymentFilter === 'credit') {
         query = query.eq('payment_status', 'credit')
       }
+
+      // Lifted filter
+      if (liftedFilter === 'lifted') {
+        query = query.eq('is_lifted', true)
+      } else if (liftedFilter === 'not_lifted') {
+        query = query.eq('is_lifted', false)
+      }
       
       const { data } = await query.limit(50)
       return (data || []) as SaleRow[]
     },
   })
+
+  // Handle lifted status change
+  const handleLiftedChange = async (saleId: string, isLifted: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('sales')
+        .update({ is_lifted: isLifted } as never)
+        .eq('id', saleId)
+
+      if (error) throw error
+
+      // Refresh the sales list
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
+      
+      // Show success message
+      const message = isLifted ? 'تم تحديث الحالة إلى: تم الرفع' : 'تم تحديث الحالة إلى: لم يتم الرفع'
+      alert(message)
+    } catch (error) {
+      console.error('Error updating lifted status:', error)
+      alert('حدث خطأ في تحديث حالة الرفع')
+    }
+  }
 
   // View sale details
   const viewSaleDetails = async (saleId: string) => {
@@ -309,6 +341,18 @@ export default function Sales() {
               <option value="credit">آجل</option>
             </select>
 
+            {/* Lifted Filter */}
+            <select
+              value={liftedFilter}
+              onChange={(e) => setLiftedFilter(e.target.value as 'all' | 'lifted' | 'not_lifted')}
+              className="px-3 py-2 border rounded-md bg-background"
+              aria-label="فلتر الرفع"
+            >
+              <option value="all">الكل (رفع)</option>
+              <option value="lifted">تم الرفع</option>
+              <option value="not_lifted">لم يتم الرفع</option>
+            </select>
+
             {/* Branch Filter */}
             <select
               value={branchFilter}
@@ -341,8 +385,10 @@ export default function Sales() {
                     <th className="text-right py-3 px-2">الفرع</th>
                     <th className="text-right py-3 px-2">الإجمالي</th>
                     <th className="text-right py-3 px-2">المدفوع</th>
+                    <th className="text-right py-3 px-2">المتبقي</th>
                     <th className="text-right py-3 px-2">ضريبة</th>
                     <th className="text-right py-3 px-2">الدفع</th>
+                    <th className="text-right py-3 px-2">الرفع</th>
                     <th className="text-right py-3 px-2">إجراءات</th>
                   </tr>
                 </thead>
@@ -356,6 +402,13 @@ export default function Sales() {
                       <td className="py-3 px-2">{formatCurrency(sale.total_amount || 0)}</td>
                       <td className="py-3 px-2">{formatCurrency(sale.paid_amount || 0)}</td>
                       <td className="py-3 px-2">
+                        {(sale.remaining_amount || 0) > 0 ? (
+                          <span className="text-orange-600 font-semibold">{formatCurrency(sale.remaining_amount || 0)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${sale.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                           {sale.has_tax ? 'بضريبة' : 'بدون'}
                         </span>
@@ -364,6 +417,20 @@ export default function Sales() {
                         <span className={`px-2 py-1 rounded-full text-xs ${sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                           {sale.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
                         </span>
+                      </td>
+                      <td className="py-3 px-2">
+                        <select
+                          value={sale.is_lifted ? 'lifted' : 'not_lifted'}
+                          onChange={(e) => handleLiftedChange(sale.id, e.target.value === 'lifted')}
+                          className={`px-2 py-1 rounded-md text-xs border ${
+                            sale.is_lifted 
+                              ? 'bg-green-50 text-green-700 border-green-200' 
+                              : 'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                        >
+                          <option value="lifted">تم الرفع</option>
+                          <option value="not_lifted">لم يتم الرفع</option>
+                        </select>
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-2">
