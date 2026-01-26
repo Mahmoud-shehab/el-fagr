@@ -63,10 +63,7 @@ export function printInvoice(data: InvoiceData) {
     </head>
     <body>
       <div class="header">
-        <h1>الفجر الجديدة</h1>
-        <p>لأحبار الطابعات والتونر</p>
-        <p>${data.branch_name}</p>
-        <p>ت: 01001403093</p>
+        <h1>إذن استلام</h1>
       </div>
       
       <div class="info">
