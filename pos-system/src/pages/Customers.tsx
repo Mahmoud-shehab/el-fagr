@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,6 +48,8 @@ export default function Customers() {
   const [showDialog, setShowDialog] = useState(false)
   const [overdueFilter, setOverdueFilter] = useState<'all' | 'overdue'>('all')
   const [editingCustomer, setEditingCustomer] = useState<CustomerRow | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const [formData, setFormData] = useState({
     name_ar: '',
     phone: '',
@@ -72,9 +74,21 @@ export default function Customers() {
     },
   })
 
-  const { data: customers, isLoading } = useQuery<CustomerRow[]>({
-    queryKey: ['customers', search, overdueFilter],
+  const { data: customersData, isLoading } = useQuery<{ customers: CustomerRow[]; totalCount: number; totalPages: number }>({
+    queryKey: ['customers', search, overdueFilter, currentPage],
     queryFn: async () => {
+      // Get total count first
+      let countQuery = supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+      
+      if (search) {
+        countQuery = countQuery.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,phone.ilike.%${search}%`)
+      }
+      
+      const { count } = await countQuery
+
+      // Get paginated data
       let query = supabase
         .from('customers')
         .select('*, group:customer_groups(name_ar), branch:branches(name_ar)')
@@ -84,7 +98,11 @@ export default function Customers() {
         query = query.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,phone.ilike.%${search}%`)
       }
       
-      const { data } = await query.limit(50)
+      // Pagination
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      
+      const { data } = await query.range(from, to)
       
       // Calculate overdue amounts for each customer
       const today = new Date().toISOString().split('T')[0]
@@ -123,13 +141,27 @@ export default function Customers() {
       }))
       
       // Filter by overdue if needed
+      let filteredCustomers = customersWithOverdue
       if (overdueFilter === 'overdue') {
-        return customersWithOverdue.filter((c: CustomerRow) => (c.overdueAmount || 0) > 0)
+        filteredCustomers = customersWithOverdue.filter((c: CustomerRow) => (c.overdueAmount || 0) > 0)
       }
       
-      return customersWithOverdue
+      return {
+        customers: filteredCustomers,
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
   })
+
+  const customers = customersData?.customers || []
+  const totalPages = customersData?.totalPages || 1
+  const totalCount = customersData?.totalCount || 0
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [search, overdueFilter])
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -318,7 +350,11 @@ export default function Customers() {
           ) : !customers?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا يوجد عملاء</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} عميل
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -391,6 +427,57 @@ export default function Customers() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  السابق
+                </Button>
+                
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  التالي
+                </Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>
