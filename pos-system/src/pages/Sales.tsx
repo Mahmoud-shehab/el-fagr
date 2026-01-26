@@ -41,6 +41,14 @@ interface SaleDetails {
   items?: SaleItem[]
 }
 
+interface BranchRow {
+  id: string
+  code: string
+  name_ar: string
+  branch_type?: string
+  status?: string
+}
+
 interface SaleRow {
   id: string
   invoice_number: string
@@ -74,7 +82,7 @@ export default function Sales() {
   const queryClient = useQueryClient()
 
   // Fetch branches (outlets only - no main warehouse)
-  const { data: branches } = useQuery({
+  const { data: branches } = useQuery<BranchRow[]>({
     queryKey: ['sales-branches'],
     queryFn: async () => {
       const { data } = await supabase
@@ -83,7 +91,7 @@ export default function Sales() {
         .eq('status', 'active')
         .eq('branch_type', 'outlet')
         .order('name_ar')
-      return data || []
+      return (data || []) as BranchRow[]
     },
   })
 
