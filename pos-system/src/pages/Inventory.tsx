@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Search, ArrowLeftRight, ClipboardList } from 'lucide-react'
+import { Search, ArrowLeftRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface InventoryRow {
@@ -65,16 +65,10 @@ export default function Inventory() {
           <h1 className="text-2xl font-bold">المخزون</h1>
           <p className="text-muted-foreground">متابعة أرصدة المخزون</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/transfers')}>
-            <ArrowLeftRight className="h-4 w-4 ml-2" />
-            تحويل مخزون
-          </Button>
-          <Button variant="outline">
-            <ClipboardList className="h-4 w-4 ml-2" />
-            جرد جديد
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => navigate('/transfers')}>
+          <ArrowLeftRight className="h-4 w-4 ml-2" />
+          تحويل مخزون
+        </Button>
       </div>
 
       <Card>
