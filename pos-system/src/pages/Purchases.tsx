@@ -1,12 +1,14 @@
-import { useState, ChangeEvent } from 'react'
+import { useState, ChangeEvent, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Search, Eye, Trash2, ShoppingBag, Building2, User, Minus } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, ShoppingBag, Building2, User, Minus, Printer } from 'lucide-react'
+import PurchaseInvoicePrint from '@/components/PurchaseInvoicePrint'
 
 interface PurchaseRow {
   id: string
@@ -55,9 +57,11 @@ export default function Purchases() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showNewPurchase, setShowNewPurchase] = useState(false)
   const [selectedPurchase, setSelectedPurchase] = useState<string | null>(null)
+  const [printPurchaseId, setPrintPurchaseId] = useState<string | null>(null)
   const [taxFilter, setTaxFilter] = useState<'all' | 'with_tax' | 'without_tax'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'credit'>('all')
   const queryClient = useQueryClient()
+  const printRef = useRef<HTMLDivElement>(null)
 
   // Fetch purchases
   const { data: purchases } = useQuery<PurchaseRow[]>({
@@ -179,13 +183,24 @@ export default function Purchases() {
                       </span>
                     </td>
                     <td className="py-3 text-center">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setSelectedPurchase(purchase.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1 justify-center">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setSelectedPurchase(purchase.id)}
+                          title="عرض التفاصيل"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setPrintPurchaseId(purchase.id)}
+                          title="طباعة"
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -225,6 +240,9 @@ export default function Purchases() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Print Purchase */}
+      {printPurchaseId && <PrintPurchase purchaseId={printPurchaseId} onClose={() => setPrintPurchaseId(null)} />}
     </div>
   )
 }
@@ -961,4 +979,78 @@ function PurchaseDetails({ purchaseId, onClose }: { purchaseId: string; onClose:
       alert('حدث خطأ في إضافة الدفعة')
     }
   }
+}
+
+
+// Print Purchase Component
+function PrintPurchase({ purchaseId, onClose }: { purchaseId: string; onClose: () => void }) {
+  const printRef = useRef<HTMLDivElement>(null)
+
+  const { data: purchase } = useQuery({
+    queryKey: ['purchase-print', purchaseId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('purchases')
+        .select('*, supplier:suppliers(*), branch:branches(*)')
+        .eq('id', purchaseId)
+        .single()
+      return data
+    },
+  })
+
+  const { data: items } = useQuery({
+    queryKey: ['purchase-items-print', purchaseId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('purchase_items')
+        .select('*, product:products(*)')
+        .eq('purchase_id', purchaseId)
+      return data || []
+    },
+  })
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    onAfterPrint: onClose,
+  })
+
+  if (!purchase || !items) {
+    return (
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent>
+          <div className="text-center py-8">جاري التحميل...</div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>طباعة فاتورة الشراء</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="max-h-[60vh] overflow-auto border rounded">
+            <PurchaseInvoicePrint
+              ref={printRef}
+              purchase={purchase}
+              items={items}
+              supplier={purchase.supplier}
+              branch={purchase.branch}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={onClose}>
+              إلغاء
+            </Button>
+            <Button onClick={handlePrint}>
+              <Printer className="ml-2 h-4 w-4" />
+              طباعة
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
