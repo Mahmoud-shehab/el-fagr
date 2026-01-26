@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,8 @@ interface BranchRow { id: string; name_ar: string }
 export default function Inventory() {
   const [search, setSearch] = useState('')
   const [selectedBranch, setSelectedBranch] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const navigate = useNavigate()
 
   const { data: branches } = useQuery<BranchRow[]>({
@@ -32,18 +34,22 @@ export default function Inventory() {
     },
   })
 
-  const { data: inventory, isLoading } = useQuery<InventoryRow[]>({
-    queryKey: ['inventory', search, selectedBranch],
+  const { data: inventoryData, isLoading } = useQuery<{ inventory: InventoryRow[]; totalCount: number; totalPages: number }>({
+    queryKey: ['inventory', search, selectedBranch, currentPage],
     queryFn: async () => {
+      let countQuery = supabase.from('inventory').select('*', { count: 'exact', head: true })
+      if (selectedBranch) countQuery = countQuery.eq('branch_id', selectedBranch)
+      const { count } = await countQuery
+
       let query = supabase
         .from('inventory')
         .select('*, product:products(code, name, name_ar, min_stock_level), branch:branches(name_ar)')
       
-      if (selectedBranch) {
-        query = query.eq('branch_id', selectedBranch)
-      }
+      if (selectedBranch) query = query.eq('branch_id', selectedBranch)
       
-      const { data } = await query.order('quantity', { ascending: true }).limit(100)
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.order('quantity', { ascending: true }).range(from, to)
       let result = (data || []) as InventoryRow[]
       
       if (search) {
@@ -54,9 +60,19 @@ export default function Inventory() {
         )
       }
       
-      return result
+      return {
+        inventory: result,
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
   })
+
+  const inventory = inventoryData?.inventory || []
+  const totalPages = inventoryData?.totalPages || 1
+  const totalCount = inventoryData?.totalCount || 0
+
+  React.useEffect(() => { setCurrentPage(1) }, [search, selectedBranch])
 
   return (
     <div className="space-y-6">
@@ -103,7 +119,11 @@ export default function Inventory() {
           ) : !inventory?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد بيانات</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} عنصر
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -142,6 +162,19 @@ export default function Inventory() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>السابق</Button>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i
+                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">{pageNum}</Button>
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>التالي</Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>

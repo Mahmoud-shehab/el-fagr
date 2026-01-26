@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,11 +40,19 @@ export default function Products() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingProduct, setEditingProduct] = useState<typeof emptyProduct>(emptyProduct)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const queryClient = useQueryClient()
 
-  const { data: products, isLoading } = useQuery<ProductRow[]>({
-    queryKey: ['products', search],
+  const { data: productsData, isLoading } = useQuery<{ products: ProductRow[]; totalCount: number; totalPages: number }>({
+    queryKey: ['products', search, currentPage],
     queryFn: async () => {
+      let countQuery = supabase.from('products').select('*', { count: 'exact', head: true })
+      if (search) {
+        countQuery = countQuery.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,barcode.ilike.%${search}%`)
+      }
+      const { count } = await countQuery
+
       let query = supabase
         .from('products')
         .select('*, category:categories(name_ar), brand:brands(name), unit:units(name_ar)')
@@ -54,10 +62,23 @@ export default function Products() {
         query = query.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,barcode.ilike.%${search}%`)
       }
       
-      const { data } = await query.limit(50)
-      return (data || []) as ProductRow[]
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      
+      return {
+        products: (data || []) as ProductRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
   })
+
+  const products = productsData?.products || []
+  const totalPages = productsData?.totalPages || 1
+  const totalCount = productsData?.totalCount || 0
+
+  React.useEffect(() => { setCurrentPage(1) }, [search])
 
   const { data: categories } = useQuery<CategoryRow[]>({
     queryKey: ['categories-list'],
@@ -222,7 +243,11 @@ export default function Products() {
           ) : !products?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد منتجات</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} منتج
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -267,6 +292,19 @@ export default function Products() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>السابق</Button>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i
+                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">{pageNum}</Button>
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>التالي</Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>
