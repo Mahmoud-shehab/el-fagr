@@ -631,7 +631,21 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
                   <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, -1)}>
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <span className="w-12 text-center font-bold">{item.quantity}</span>
+                  <Input
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      const newQty = parseInt(e.target.value) || 1
+                      if (newQty < 1) return
+                      setItems(items.map(purchaseItem => 
+                        purchaseItem.id === item.id 
+                          ? { ...purchaseItem, quantity: newQty, total: newQty * purchaseItem.unit_price }
+                          : purchaseItem
+                      ))
+                    }}
+                    className="w-16 h-7 text-center font-bold p-1"
+                    min={1}
+                  />
                   <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, 1)}>
                     <Plus className="h-3 w-3" />
                   </Button>
