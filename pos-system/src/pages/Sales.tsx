@@ -64,11 +64,26 @@ export default function Sales() {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [taxFilter, setTaxFilter] = useState<'all' | 'with_tax' | 'without_tax'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'credit'>('all')
+  const [branchFilter, setBranchFilter] = useState<string>('all')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
+  // Fetch branches (outlets only - no main warehouse)
+  const { data: branches } = useQuery({
+    queryKey: ['sales-branches'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('status', 'active')
+        .eq('branch_type', 'outlet')
+        .order('name_ar')
+      return data || []
+    },
+  })
+
   const { data: sales, isLoading } = useQuery({
-    queryKey: ['sales', search, taxFilter, paymentFilter],
+    queryKey: ['sales', search, taxFilter, paymentFilter, branchFilter],
     queryFn: async () => {
       let query = supabase
         .from('sales')
@@ -77,6 +92,11 @@ export default function Sales() {
       
       if (search) {
         query = query.or(`invoice_number.ilike.%${search}%,customer_name.ilike.%${search}%`)
+      }
+
+      // Branch filter
+      if (branchFilter !== 'all') {
+        query = query.eq('branch_id', branchFilter)
       }
 
       // Tax filter
@@ -269,6 +289,21 @@ export default function Sales() {
               <option value="all">الكل (دفع)</option>
               <option value="paid">مدفوع</option>
               <option value="credit">آجل</option>
+            </select>
+
+            {/* Branch Filter */}
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md bg-background"
+              aria-label="فلتر الفرع"
+            >
+              <option value="all">جميع المنافذ</option>
+              {branches?.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name_ar}
+                </option>
+              ))}
             </select>
           </div>
         </CardHeader>

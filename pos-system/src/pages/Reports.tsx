@@ -127,6 +127,21 @@ export default function Reports() {
   const [activeReport, setActiveReport] = useState<ReportType>('sales')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [branchFilter, setBranchFilter] = useState<string>('all')
+
+  // Fetch branches (outlets only)
+  const { data: branches } = useQuery({
+    queryKey: ['reports-branches'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('status', 'active')
+        .eq('branch_type', 'outlet')
+        .order('name_ar')
+      return data || []
+    },
+  })
 
   const handlePrint = () => {
     window.print()
@@ -198,6 +213,18 @@ export default function Reports() {
               <div className="flex items-center justify-between">
                 <CardTitle>{reports.find(r => r.key === activeReport)?.label}</CardTitle>
                 <div className="flex items-center gap-2">
+                  <select
+                    value={branchFilter}
+                    onChange={(e) => setBranchFilter(e.target.value)}
+                    className="px-3 py-2 border rounded-md bg-background"
+                  >
+                    <option value="all">جميع المنافذ</option>
+                    {branches?.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name_ar}
+                      </option>
+                    ))}
+                  </select>
                   <Input type="date" value={dateFrom} onChange={(e: ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)} className="w-40" />
                   <span>إلى</span>
                   <Input type="date" value={dateTo} onChange={(e: ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)} className="w-40" />
@@ -211,12 +238,12 @@ export default function Reports() {
               </div>
             </CardHeader>
             <CardContent className="report-content">
-              {activeReport === 'sales' && <SalesReport dateFrom={dateFrom} dateTo={dateTo} />}
-              {activeReport === 'purchases' && <PurchasesReport dateFrom={dateFrom} dateTo={dateTo} />}
-              {activeReport === 'inventory' && <InventoryReport />}
-              {activeReport === 'customers' && <CustomersReport />}
+              {activeReport === 'sales' && <SalesReport dateFrom={dateFrom} dateTo={dateTo} branchFilter={branchFilter} />}
+              {activeReport === 'purchases' && <PurchasesReport dateFrom={dateFrom} dateTo={dateTo} branchFilter={branchFilter} />}
+              {activeReport === 'inventory' && <InventoryReport branchFilter={branchFilter} />}
+              {activeReport === 'customers' && <CustomersReport branchFilter={branchFilter} />}
               {activeReport === 'suppliers' && <SuppliersReport />}
-              {activeReport === 'profit' && <ProfitReport dateFrom={dateFrom} dateTo={dateTo} />}
+              {activeReport === 'profit' && <ProfitReport dateFrom={dateFrom} dateTo={dateTo} branchFilter={branchFilter} />}
             </CardContent>
           </Card>
         </div>
@@ -225,13 +252,14 @@ export default function Reports() {
   )
 }
 
-function SalesReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }) {
+function SalesReport({ dateFrom, dateTo, branchFilter }: { dateFrom: string; dateTo: string; branchFilter: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['sales-report', dateFrom, dateTo],
+    queryKey: ['sales-report', dateFrom, dateTo, branchFilter],
     queryFn: async () => {
       let query = supabase.from('sales').select('*').order('created_at', { ascending: false })
       if (dateFrom) query = query.gte('invoice_date', dateFrom)
       if (dateTo) query = query.lte('invoice_date', dateTo)
+      if (branchFilter !== 'all') query = query.eq('branch_id', branchFilter)
       const { data } = await query.limit(100)
       const sales = (data || []) as SaleRow[]
       
@@ -289,13 +317,14 @@ function SalesReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: string })
   )
 }
 
-function PurchasesReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }) {
+function PurchasesReport({ dateFrom, dateTo, branchFilter }: { dateFrom: string; dateTo: string; branchFilter: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['purchases-report', dateFrom, dateTo],
+    queryKey: ['purchases-report', dateFrom, dateTo, branchFilter],
     queryFn: async () => {
       let query = supabase.from('purchases').select('*, supplier:suppliers(name_ar)').order('created_at', { ascending: false })
       if (dateFrom) query = query.gte('invoice_date', dateFrom)
       if (dateTo) query = query.lte('invoice_date', dateTo)
+      if (branchFilter !== 'all') query = query.eq('branch_id', branchFilter)
       const { data } = await query.limit(100)
       const purchases = (data || []) as PurchaseRow[]
       
@@ -350,16 +379,19 @@ function PurchasesReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: strin
   )
 }
 
-function InventoryReport() {
+function InventoryReport({ branchFilter }: { branchFilter: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['inventory-report'],
+    queryKey: ['inventory-report', branchFilter],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('inventory')
         .select('*, product:products(code, name_ar, selling_price), branch:branches(name_ar)')
         .order('quantity', { ascending: true })
-        .limit(100)
-      const inventory = (data || []) as InventoryRow[]
+      
+      if (branchFilter !== 'all') query = query.eq('branch_id', branchFilter)
+      
+      const { data: inventoryData } = await query.limit(100)
+      const inventory = (inventoryData || []) as InventoryRow[]
       
       const lowStock = inventory.filter((i) => (i.quantity || 0) <= (i.min_quantity || 10))
       const totalValue = inventory.reduce((sum, i) => sum + ((i.quantity || 0) * (i.product?.selling_price || 0)), 0)
@@ -413,16 +445,19 @@ function InventoryReport() {
 }
 
 
-function CustomersReport() {
+function CustomersReport({ branchFilter }: { branchFilter: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['customers-report'],
+    queryKey: ['customers-report', branchFilter],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('customers')
         .select('*')
         .order('current_balance', { ascending: false })
-        .limit(100)
-      const customers = (data || []) as CustomerRow[]
+      
+      if (branchFilter !== 'all') query = query.eq('branch_id', branchFilter)
+      
+      const { data: customersData } = await query.limit(100)
+      const customers = (customersData || []) as CustomerRow[]
       
       const totalBalance = customers.reduce((sum, c) => sum + (c.current_balance || 0), 0)
       const withBalance = customers.filter(c => (c.current_balance || 0) > 0)
@@ -530,9 +565,9 @@ function SuppliersReport() {
   )
 }
 
-function ProfitReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }) {
+function ProfitReport({ dateFrom, dateTo, branchFilter }: { dateFrom: string; dateTo: string; branchFilter: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['profit-report', dateFrom, dateTo],
+    queryKey: ['profit-report', dateFrom, dateTo, branchFilter],
     queryFn: async () => {
       let salesQuery = supabase.from('sales').select('total_amount, discount_amount')
       let purchasesQuery = supabase.from('purchases').select('total_amount')
@@ -544,6 +579,10 @@ function ProfitReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }
       if (dateTo) {
         salesQuery = salesQuery.lte('invoice_date', dateTo)
         purchasesQuery = purchasesQuery.lte('invoice_date', dateTo)
+      }
+      if (branchFilter !== 'all') {
+        salesQuery = salesQuery.eq('branch_id', branchFilter)
+        purchasesQuery = purchasesQuery.eq('branch_id', branchFilter)
       }
       
       const [{ data: salesData }, { data: purchasesData }] = await Promise.all([salesQuery, purchasesQuery])
