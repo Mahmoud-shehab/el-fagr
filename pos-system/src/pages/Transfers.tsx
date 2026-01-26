@@ -78,8 +78,6 @@ export default function Transfers() {
   const totalCount = transfersData?.totalCount || 0
 
   React.useEffect(() => { setCurrentPage(1) }, [search])
-    },
-  })
 
   const { data: branches } = useQuery<BranchRow[]>({
     queryKey: ['branches-list'],
