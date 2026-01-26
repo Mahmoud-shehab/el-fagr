@@ -51,6 +51,7 @@ export default function POS() {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [discount, setDiscount] = useState(0)
   const [paidAmount, setPaidAmount] = useState('')
+  const [dueDate, setDueDate] = useState('')
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
   const [showBranchSelect, setShowBranchSelect] = useState(false)
   const queryClient = useQueryClient()
@@ -205,6 +206,7 @@ export default function POS() {
     setSelectedCustomer(null)
     setDiscount(0)
     setPaidAmount('')
+    setDueDate('')
   }
 
   // Create sale mutation
@@ -236,6 +238,7 @@ export default function POS() {
         remaining_amount: remaining > 0 ? remaining : 0,
         payment_method: paymentMethod,
         status: remaining <= 0 ? 'paid' : 'partially_paid',
+        due_date: paymentMethod === 'credit' && dueDate ? dueDate : null,
       }
       
       const { data: sale, error: saleError } = await supabase
@@ -502,6 +505,20 @@ export default function POS() {
               placeholder="0"
             />
           </div>
+
+          {/* Due Date for Credit Sales */}
+          {selectedCustomer && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm">تاريخ الاستحقاق</span>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value)}
+                className="flex-1 h-10"
+                placeholder="اختياري للآجل"
+              />
+            </div>
+          )}
 
           {remaining > 0 && (
             <div className="flex justify-between text-destructive">
