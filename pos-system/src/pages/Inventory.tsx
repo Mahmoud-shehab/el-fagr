@@ -37,31 +37,30 @@ export default function Inventory() {
   const { data: inventoryData, isLoading } = useQuery<{ inventory: InventoryRow[]; totalCount: number; totalPages: number }>({
     queryKey: ['inventory', search, selectedBranch, currentPage],
     queryFn: async () => {
-      let countQuery = supabase.from('inventory').select('*', { count: 'exact', head: true })
+      // Build count query with search
+      let countQuery = supabase.from('inventory').select('*, product:products!inner(code, name, name_ar)', { count: 'exact', head: true })
       if (selectedBranch) countQuery = countQuery.eq('branch_id', selectedBranch)
+      if (search) {
+        countQuery = countQuery.or(`code.ilike.%${search}%,name.ilike.%${search}%,name_ar.ilike.%${search}%`, { foreignTable: 'products' })
+      }
       const { count } = await countQuery
 
+      // Build data query with search
       let query = supabase
         .from('inventory')
-        .select('*, product:products(code, name, name_ar, min_stock_level), branch:branches(name_ar)')
+        .select('*, product:products!inner(code, name, name_ar, min_stock_level), branch:branches(name_ar)')
       
       if (selectedBranch) query = query.eq('branch_id', selectedBranch)
+      if (search) {
+        query = query.or(`code.ilike.%${search}%,name.ilike.%${search}%,name_ar.ilike.%${search}%`, { foreignTable: 'products' })
+      }
       
       const from = (currentPage - 1) * itemsPerPage
       const to = from + itemsPerPage - 1
       const { data } = await query.order('quantity', { ascending: true }).range(from, to)
-      let result = (data || []) as InventoryRow[]
-      
-      if (search) {
-        result = result.filter(item => 
-          item.product?.name?.toLowerCase().includes(search.toLowerCase()) ||
-          item.product?.name_ar?.includes(search) ||
-          item.product?.code?.toLowerCase().includes(search.toLowerCase())
-        )
-      }
       
       return {
-        inventory: result,
+        inventory: (data || []) as InventoryRow[],
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / itemsPerPage)
       }
