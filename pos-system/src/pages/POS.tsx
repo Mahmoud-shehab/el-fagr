@@ -120,22 +120,23 @@ export default function POS() {
 
   // Fetch customers for search - filtered by selected branch
   const { data: customers } = useQuery<CustomerRow[]>({
-    queryKey: ['pos-customers', customerSearch, selectedBranchId],
+    queryKey: ['pos-customers', customerSearch, selectedBranchId, showCustomerSearch],
     queryFn: async () => {
-      if (!customerSearch || !selectedBranchId) return []
+      if (!selectedBranchId) return []
       let query = supabase
         .from('customers')
         .select('*')
         .eq('status', 'active')
-        .or(`code.ilike.%${customerSearch}%,name_ar.ilike.%${customerSearch}%,phone.ilike.%${customerSearch}%`)
+        .eq('branch_id', selectedBranchId)
       
-      // Filter by branch
-      query = query.eq('branch_id', selectedBranchId)
+      if (customerSearch) {
+        query = query.or(`code.ilike.%${customerSearch}%,name_ar.ilike.%${customerSearch}%,phone.ilike.%${customerSearch}%`)
+      }
       
-      const { data } = await query.limit(10)
+      const { data } = await query.limit(20).order('name_ar')
       return (data || []) as CustomerRow[]
     },
-    enabled: customerSearch.length > 0 && !!selectedBranchId,
+    enabled: showCustomerSearch && !!selectedBranchId,
   })
 
   // Calculate totals
