@@ -462,7 +462,27 @@ export default function POS() {
                     <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, -1)}>
                       <Minus className="h-3 w-3" />
                     </Button>
-                    <span className="w-8 text-center font-bold">{item.quantity}</span>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        const newQty = parseInt(e.target.value) || 1
+                        const availableQty = item.product.available_quantity || 0
+                        if (newQty > availableQty) {
+                          alert(`الكمية المتاحة: ${availableQty}`)
+                          return
+                        }
+                        if (newQty < 1) return
+                        setCart(cart.map(cartItem => 
+                          cartItem.id === item.id 
+                            ? { ...cartItem, quantity: newQty, total: newQty * cartItem.unit_price }
+                            : cartItem
+                        ))
+                      }}
+                      className="w-16 h-7 text-center font-bold p-1"
+                      min={1}
+                      max={item.product.available_quantity || 999}
+                    />
                     <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, 1)}>
                       <Plus className="h-3 w-3" />
                     </Button>
