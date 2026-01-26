@@ -68,6 +68,8 @@ export default function Sales() {
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'credit'>('all')
   const [liftedFilter, setLiftedFilter] = useState<'all' | 'lifted' | 'not_lifted'>('all')
   const [branchFilter, setBranchFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -85,9 +87,39 @@ export default function Sales() {
     },
   })
 
-  const { data: sales, isLoading } = useQuery({
-    queryKey: ['sales', search, taxFilter, paymentFilter, liftedFilter, branchFilter],
+  const { data: salesData, isLoading } = useQuery({
+    queryKey: ['sales', search, taxFilter, paymentFilter, liftedFilter, branchFilter, currentPage],
     queryFn: async () => {
+      // First, get the total count
+      let countQuery = supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+      
+      if (search) {
+        countQuery = countQuery.or(`invoice_number.ilike.%${search}%,customer_name.ilike.%${search}%`)
+      }
+      if (branchFilter !== 'all') {
+        countQuery = countQuery.eq('branch_id', branchFilter)
+      }
+      if (taxFilter === 'with_tax') {
+        countQuery = countQuery.eq('has_tax', true)
+      } else if (taxFilter === 'without_tax') {
+        countQuery = countQuery.eq('has_tax', false)
+      }
+      if (paymentFilter === 'paid') {
+        countQuery = countQuery.eq('payment_status', 'paid')
+      } else if (paymentFilter === 'credit') {
+        countQuery = countQuery.eq('payment_status', 'credit')
+      }
+      if (liftedFilter === 'lifted') {
+        countQuery = countQuery.eq('is_lifted', true)
+      } else if (liftedFilter === 'not_lifted') {
+        countQuery = countQuery.eq('is_lifted', false)
+      }
+
+      const { count } = await countQuery
+
+      // Then get the paginated data
       let query = supabase
         .from('sales')
         .select('*, customer:customers(name, name_ar), branch:branches(name_ar)')
@@ -123,10 +155,28 @@ export default function Sales() {
         query = query.eq('is_lifted', false)
       }
       
-      const { data } = await query.limit(50)
-      return (data || []) as SaleRow[]
+      // Pagination
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      
+      const { data } = await query.range(from, to)
+      
+      return {
+        sales: (data || []) as SaleRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
   })
+
+  const sales = salesData?.sales || []
+  const totalPages = salesData?.totalPages || 1
+  const totalCount = salesData?.totalCount || 0
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [search, taxFilter, paymentFilter, liftedFilter, branchFilter])
 
   // Handle lifted status change
   const handleLiftedChange = async (saleId: string, isLifted: boolean) => {
@@ -375,7 +425,11 @@ export default function Sales() {
           ) : !sales?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد فواتير</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} فاتورة
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -447,6 +501,57 @@ export default function Sales() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  السابق
+                </Button>
+                
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  التالي
+                </Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>
