@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, useRef } from 'react'
+import React, { useState, ChangeEvent, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
@@ -60,13 +60,37 @@ export default function Purchases() {
   const [printPurchaseId, setPrintPurchaseId] = useState<string | null>(null)
   const [taxFilter, setTaxFilter] = useState<'all' | 'with_tax' | 'without_tax'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'credit'>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const queryClient = useQueryClient()
   const printRef = useRef<HTMLDivElement>(null)
 
   // Fetch purchases
-  const { data: purchases } = useQuery<PurchaseRow[]>({
-    queryKey: ['purchases', searchTerm, taxFilter, paymentFilter],
+  const { data: purchasesData } = useQuery<{ purchases: PurchaseRow[]; totalCount: number; totalPages: number }>({
+    queryKey: ['purchases', searchTerm, taxFilter, paymentFilter, currentPage],
     queryFn: async () => {
+      // Get total count
+      let countQuery = supabase
+        .from('purchases')
+        .select('*', { count: 'exact', head: true })
+      
+      if (searchTerm) {
+        countQuery = countQuery.or(`invoice_number.ilike.%${searchTerm}%`)
+      }
+      if (taxFilter === 'with_tax') {
+        countQuery = countQuery.eq('has_tax', true)
+      } else if (taxFilter === 'without_tax') {
+        countQuery = countQuery.eq('has_tax', false)
+      }
+      if (paymentFilter === 'paid') {
+        countQuery = countQuery.eq('payment_status', 'paid')
+      } else if (paymentFilter === 'credit') {
+        countQuery = countQuery.eq('payment_status', 'credit')
+      }
+
+      const { count } = await countQuery
+
+      // Get paginated data
       let query = supabase
         .from('purchases')
         .select('*, supplier:suppliers(name, name_ar), branch:branches(name_ar)')
@@ -75,25 +99,37 @@ export default function Purchases() {
       if (searchTerm) {
         query = query.or(`invoice_number.ilike.%${searchTerm}%`)
       }
-
-      // Tax filter
       if (taxFilter === 'with_tax') {
         query = query.eq('has_tax', true)
       } else if (taxFilter === 'without_tax') {
         query = query.eq('has_tax', false)
       }
-
-      // Payment filter
       if (paymentFilter === 'paid') {
         query = query.eq('payment_status', 'paid')
       } else if (paymentFilter === 'credit') {
         query = query.eq('payment_status', 'credit')
       }
       
-      const { data } = await query.limit(50)
-      return (data || []) as PurchaseRow[]
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      
+      const { data } = await query.range(from, to)
+      
+      return {
+        purchases: (data || []) as PurchaseRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
   })
+
+  const purchases = purchasesData?.purchases || []
+  const totalPages = purchasesData?.totalPages || 1
+  const totalCount = purchasesData?.totalCount || 0
+
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, taxFilter, paymentFilter])
 
   return (
     <div className="p-6">
@@ -149,7 +185,11 @@ export default function Purchases() {
               لا توجد مشتريات حالياً
             </div>
           ) : (
-            <table className="w-full">
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} فاتورة
+              </div>
+              <table className="w-full">
               <thead>
                 <tr className="border-b">
                   <th className="text-right py-3">رقم الفاتورة</th>
@@ -206,6 +246,57 @@ export default function Purchases() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  السابق
+                </Button>
+                
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  التالي
+                </Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>
