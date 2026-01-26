@@ -25,15 +25,29 @@ export default function Customers() {
     email: '',
     address: '',
     credit_limit: 0,
+    branch_id: '',
   })
   const queryClient = useQueryClient()
+
+  // Fetch branches
+  const { data: branches } = useQuery({
+    queryKey: ['customer-branches'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('status', 'active')
+        .order('name_ar')
+      return data || []
+    },
+  })
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers', search],
     queryFn: async () => {
       let query = supabase
         .from('customers')
-        .select('*, group:customer_groups(name_ar)')
+        .select('*, group:customer_groups(name_ar), branch:branches(name_ar)')
         .order('created_at', { ascending: false })
       
       if (search) {
@@ -63,6 +77,7 @@ export default function Customers() {
         email: formData.email || null,
         address: formData.address || null,
         credit_limit: formData.credit_limit,
+        branch_id: formData.branch_id || null,
         current_balance: 0,
         status: 'active',
       } as never)
@@ -71,7 +86,7 @@ export default function Customers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
       setShowDialog(false)
-      setFormData({ name_ar: '', phone: '', email: '', address: '', credit_limit: 0 })
+      setFormData({ name_ar: '', phone: '', email: '', address: '', credit_limit: 0, branch_id: '' })
       alert('تم إضافة العميل بنجاح!')
     },
     onError: (err) => alert('خطأ: ' + err.message),
@@ -126,11 +141,27 @@ export default function Customers() {
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})}
                 placeholder="0" />
             </div>
+            <div>
+              <label htmlFor="branch" className="text-sm font-medium">الفرع *</label>
+              <select
+                id="branch"
+                value={formData.branch_id}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, branch_id: e.target.value})}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+              >
+                <option value="">اختر الفرع</option>
+                {branches?.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name_ar}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
             <Button onClick={() => createMutation.mutate()}
-              disabled={!formData.name_ar || !formData.phone || createMutation.isPending}>
+              disabled={!formData.name_ar || !formData.phone || !formData.branch_id || createMutation.isPending}>
               {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
             </Button>
           </DialogFooter>
@@ -163,7 +194,7 @@ export default function Customers() {
                   <tr className="border-b">
                     <th className="text-right py-3 px-2">الكود</th>
                     <th className="text-right py-3 px-2">الاسم</th>
-                    <th className="text-right py-3 px-2">المجموعة</th>
+                    <th className="text-right py-3 px-2">الفرع</th>
                     <th className="text-right py-3 px-2">التواصل</th>
                     <th className="text-right py-3 px-2">الرصيد</th>
                     <th className="text-right py-3 px-2">حد الائتمان</th>
@@ -176,7 +207,7 @@ export default function Customers() {
                     <tr key={customer.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-2 font-mono text-sm">{customer.code}</td>
                       <td className="py-3 px-2">{customer.name_ar || customer.name}</td>
-                      <td className="py-3 px-2">{customer.group?.name_ar || '-'}</td>
+                      <td className="py-3 px-2">{customer.branch?.name_ar || '-'}</td>
                       <td className="py-3 px-2">
                         <div className="flex flex-col gap-1 text-sm">
                           <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{customer.phone}</span>

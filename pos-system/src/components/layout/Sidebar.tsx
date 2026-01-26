@@ -2,7 +2,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Package, Users, ShoppingCart, Truck, RotateCcw,
-  ArrowLeftRight, ClipboardList, AlertTriangle, Settings, LogOut, Monitor, FileBarChart
+  ArrowLeftRight, ClipboardList, AlertTriangle, Settings, LogOut, Monitor, FileBarChart,
+  DollarSign, FileText, PackageCheck
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -13,11 +14,14 @@ const menuItems = [
   { icon: Truck, label: 'المشتريات', path: '/purchases' },
   { icon: Package, label: 'المنتجات', path: '/products' },
   { icon: ClipboardList, label: 'المخزون', path: '/inventory' },
+  { icon: PackageCheck, label: 'جرد المخزون', path: '/stock-count' },
   { icon: ArrowLeftRight, label: 'التحويلات', path: '/transfers' },
   { icon: RotateCcw, label: 'المرتجعات', path: '/returns' },
   { icon: AlertTriangle, label: 'التالف', path: '/damaged' },
   { icon: Users, label: 'العملاء', path: '/customers' },
+  { icon: FileText, label: 'كشف حساب عميل', path: '/customer-statement' },
   { icon: Users, label: 'الموردين', path: '/suppliers' },
+  { icon: DollarSign, label: 'سحوبات الشركاء', path: '/partner-withdrawals' },
   { icon: FileBarChart, label: 'التقارير', path: '/reports' },
   { icon: Settings, label: 'الإعدادات', path: '/settings' },
 ]

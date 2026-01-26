@@ -117,20 +117,24 @@ export default function POS() {
     enabled: !!selectedBranchId,
   })
 
-  // Fetch customers for search
+  // Fetch customers for search - filtered by selected branch
   const { data: customers } = useQuery<CustomerRow[]>({
-    queryKey: ['pos-customers', customerSearch],
+    queryKey: ['pos-customers', customerSearch, selectedBranchId],
     queryFn: async () => {
-      if (!customerSearch) return []
-      const { data } = await supabase
+      if (!customerSearch || !selectedBranchId) return []
+      let query = supabase
         .from('customers')
         .select('*')
         .eq('status', 'active')
         .or(`code.ilike.%${customerSearch}%,name_ar.ilike.%${customerSearch}%,phone.ilike.%${customerSearch}%`)
-        .limit(10)
+      
+      // Filter by branch
+      query = query.eq('branch_id', selectedBranchId)
+      
+      const { data } = await query.limit(10)
       return (data || []) as CustomerRow[]
     },
-    enabled: customerSearch.length > 0,
+    enabled: customerSearch.length > 0 && !!selectedBranchId,
   })
 
   // Calculate totals

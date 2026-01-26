@@ -14,6 +14,9 @@ import Damaged from '@/pages/Damaged'
 import Settings from '@/pages/Settings'
 import POS from '@/pages/POS'
 import Reports from '@/pages/Reports'
+import PartnerWithdrawals from '@/pages/PartnerWithdrawals'
+import CustomerStatement from '@/pages/CustomerStatement'
+import StockCount from '@/pages/StockCount'
 
 function App() {
   return (
@@ -33,6 +36,9 @@ function App() {
         <Route path="transfers" element={<Transfers />} />
         <Route path="damaged" element={<Damaged />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="partner-withdrawals" element={<PartnerWithdrawals />} />
+        <Route path="customer-statement" element={<CustomerStatement />} />
+        <Route path="stock-count" element={<StockCount />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
