@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -109,43 +109,77 @@ export default function Returns() {
   const [activeTab, setActiveTab] = useState<'sales' | 'purchases'>('sales')
   const [showNewReturn, setShowNewReturn] = useState(false)
   const [selectedReturn, setSelectedReturn] = useState<string | null>(null)
+  const [currentPageSales, setCurrentPageSales] = useState(1)
+  const [currentPagePurchases, setCurrentPagePurchases] = useState(1)
+  const itemsPerPage = 10
   const queryClient = useQueryClient()
 
-  const { data: salesReturns, isLoading: loadingSales } = useQuery<SalesReturnRow[]>({
-    queryKey: ['sales-returns', search],
+  const { data: salesReturnsData, isLoading: loadingSales } = useQuery({
+    queryKey: ['sales-returns', search, currentPageSales],
     queryFn: async () => {
+      let countQuery = supabase.from('sales_returns').select('*', { count: 'exact', head: true })
+      if (search) countQuery = countQuery.ilike('return_number', `%${search}%`)
+      const { count } = await countQuery
+
       let query = supabase
         .from('sales_returns')
         .select('*, customer:customers(name, name_ar), branch:branches(name_ar), sale:sales(invoice_number)')
         .order('created_at', { ascending: false })
       
-      if (search) {
-        query = query.ilike('return_number', `%${search}%`)
-      }
+      if (search) query = query.ilike('return_number', `%${search}%`)
       
-      const { data } = await query.limit(50)
-      return (data || []) as SalesReturnRow[]
+      const from = (currentPageSales - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      
+      return {
+        returns: (data || []) as SalesReturnRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
     enabled: activeTab === 'sales',
   })
 
-  const { data: purchaseReturns, isLoading: loadingPurchases } = useQuery<PurchaseReturnRow[]>({
-    queryKey: ['purchase-returns', search],
+  const { data: purchaseReturnsData, isLoading: loadingPurchases } = useQuery({
+    queryKey: ['purchase-returns', search, currentPagePurchases],
     queryFn: async () => {
+      let countQuery = supabase.from('purchase_returns').select('*', { count: 'exact', head: true })
+      if (search) countQuery = countQuery.ilike('return_number', `%${search}%`)
+      const { count } = await countQuery
+
       let query = supabase
         .from('purchase_returns')
         .select('*, supplier:suppliers(name, name_ar), branch:branches(name_ar), purchase:purchases(invoice_number)')
         .order('created_at', { ascending: false })
       
-      if (search) {
-        query = query.ilike('return_number', `%${search}%`)
-      }
+      if (search) query = query.ilike('return_number', `%${search}%`)
       
-      const { data } = await query.limit(50)
-      return (data || []) as PurchaseReturnRow[]
+      const from = (currentPagePurchases - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      
+      return {
+        returns: (data || []) as PurchaseReturnRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
     enabled: activeTab === 'purchases',
   })
+
+  const salesReturns = salesReturnsData?.returns || []
+  const salesTotalPages = salesReturnsData?.totalPages || 1
+  const salesTotalCount = salesReturnsData?.totalCount || 0
+
+  const purchaseReturns = purchaseReturnsData?.returns || []
+  const purchasesTotalPages = purchaseReturnsData?.totalPages || 1
+  const purchasesTotalCount = purchaseReturnsData?.totalCount || 0
+
+  React.useEffect(() => { 
+    setCurrentPageSales(1)
+    setCurrentPagePurchases(1)
+  }, [search])
 
   return (
     <div className="space-y-6">
@@ -200,64 +234,113 @@ export default function Returns() {
             ) : !salesReturns?.length ? (
               <p className="text-center py-8 text-muted-foreground">لا توجد مرتجعات</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-right py-3 px-2">رقم المرتجع</th>
-                      <th className="text-right py-3 px-2">التاريخ</th>
-                      <th className="text-right py-3 px-2">رقم الفاتورة</th>
-                      <th className="text-right py-3 px-2">العميل</th>
-                      <th className="text-right py-3 px-2">المبلغ</th>
-                      <th className="text-right py-3 px-2">الحالة</th>
-                      <th className="text-right py-3 px-2">إجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesReturns.map((ret) => (
-                      <tr key={ret.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-mono">{ret.return_number}</td>
-                        <td className="py-3 px-2">{formatDate(ret.return_date || ret.created_at!)}</td>
-                        <td className="py-3 px-2">{ret.sale?.invoice_number}</td>
-                        <td className="py-3 px-2">{ret.customer?.name_ar || ret.customer?.name || '-'}</td>
-                        <td className="py-3 px-2">{formatCurrency(ret.total_amount || 0)}</td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${salesReturnStatus[ret.status || 'pending'].color}`}>
-                            {salesReturnStatus[ret.status || 'pending'].label}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 flex gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setSelectedReturn(ret.id)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {ret.status === 'pending' && (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-right py-3 px-2">رقم المرتجع</th>
+                        <th className="text-right py-3 px-2">التاريخ</th>
+                        <th className="text-right py-3 px-2">رقم الفاتورة</th>
+                        <th className="text-right py-3 px-2">العميل</th>
+                        <th className="text-right py-3 px-2">المبلغ</th>
+                        <th className="text-right py-3 px-2">الحالة</th>
+                        <th className="text-right py-3 px-2">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesReturns.map((ret) => (
+                        <tr key={ret.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-2 font-mono">{ret.return_number}</td>
+                          <td className="py-3 px-2">{formatDate(ret.return_date || ret.created_at!)}</td>
+                          <td className="py-3 px-2">{ret.sale?.invoice_number}</td>
+                          <td className="py-3 px-2">{ret.customer?.name_ar || ret.customer?.name || '-'}</td>
+                          <td className="py-3 px-2">{formatCurrency(ret.total_amount || 0)}</td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${salesReturnStatus[ret.status || 'pending'].color}`}>
+                              {salesReturnStatus[ret.status || 'pending'].label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 flex gap-1">
                             <Button 
                               variant="ghost" 
-                              size="sm"
-                              onClick={async () => {
-                                const { error } = await supabase
-                                  .from('sales_returns')
-                                  .update({ status: 'completed' })
-                                  .eq('id', ret.id)
-                                if (!error) {
-                                  alert('تم تأكيد المرتجع!')
-                                  queryClient.invalidateQueries({ queryKey: ['sales-returns'] })
-                                }
-                              }}
+                              size="icon"
+                              onClick={() => setSelectedReturn(ret.id)}
                             >
-                              تأكيد
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            {ret.status === 'pending' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={async () => {
+                                  const { error } = await supabase
+                                    .from('sales_returns')
+                                    .update({ status: 'completed' })
+                                    .eq('id', ret.id)
+                                  if (!error) {
+                                    alert('تم تأكيد المرتجع!')
+                                    queryClient.invalidateQueries({ queryKey: ['sales-returns'] })
+                                  }
+                                }}
+                              >
+                                تأكيد
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination for Sales Returns */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    عرض {((currentPageSales - 1) * itemsPerPage) + 1}-{Math.min(currentPageSales * itemsPerPage, salesTotalCount)} من {salesTotalCount}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageSales(p => Math.max(1, p - 1))}
+                      disabled={currentPageSales === 1}
+                    >
+                      السابق
+                    </Button>
+                    {Array.from({ length: Math.min(5, salesTotalPages) }, (_, i) => {
+                      let pageNum
+                      if (salesTotalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPageSales <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPageSales >= salesTotalPages - 2) {
+                        pageNum = salesTotalPages - 4 + i
+                      } else {
+                        pageNum = currentPageSales - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPageSales === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPageSales(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageSales(p => Math.min(salesTotalPages, p + 1))}
+                      disabled={currentPageSales === salesTotalPages}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              </>
             )
           ) : (
             loadingPurchases ? (
@@ -265,46 +348,95 @@ export default function Returns() {
             ) : !purchaseReturns?.length ? (
               <p className="text-center py-8 text-muted-foreground">لا توجد مرتجعات</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-right py-3 px-2">رقم المرتجع</th>
-                      <th className="text-right py-3 px-2">التاريخ</th>
-                      <th className="text-right py-3 px-2">رقم الفاتورة</th>
-                      <th className="text-right py-3 px-2">المورد</th>
-                      <th className="text-right py-3 px-2">المبلغ</th>
-                      <th className="text-right py-3 px-2">الحالة</th>
-                      <th className="text-right py-3 px-2">إجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchaseReturns.map((ret) => (
-                      <tr key={ret.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-mono">{ret.return_number}</td>
-                        <td className="py-3 px-2">{formatDate(ret.return_date || ret.created_at!)}</td>
-                        <td className="py-3 px-2">{ret.purchase?.invoice_number}</td>
-                        <td className="py-3 px-2">{ret.supplier?.name_ar || ret.supplier?.name}</td>
-                        <td className="py-3 px-2">{formatCurrency(ret.total_amount || 0)}</td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${purchaseReturnStatus[ret.status || 'draft'].color}`}>
-                            {purchaseReturnStatus[ret.status || 'draft'].label}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setSelectedReturn(ret.id)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-right py-3 px-2">رقم المرتجع</th>
+                        <th className="text-right py-3 px-2">التاريخ</th>
+                        <th className="text-right py-3 px-2">رقم الفاتورة</th>
+                        <th className="text-right py-3 px-2">المورد</th>
+                        <th className="text-right py-3 px-2">المبلغ</th>
+                        <th className="text-right py-3 px-2">الحالة</th>
+                        <th className="text-right py-3 px-2">إجراءات</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {purchaseReturns.map((ret) => (
+                        <tr key={ret.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-2 font-mono">{ret.return_number}</td>
+                          <td className="py-3 px-2">{formatDate(ret.return_date || ret.created_at!)}</td>
+                          <td className="py-3 px-2">{ret.purchase?.invoice_number}</td>
+                          <td className="py-3 px-2">{ret.supplier?.name_ar || ret.supplier?.name}</td>
+                          <td className="py-3 px-2">{formatCurrency(ret.total_amount || 0)}</td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${purchaseReturnStatus[ret.status || 'draft'].color}`}>
+                              {purchaseReturnStatus[ret.status || 'draft'].label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setSelectedReturn(ret.id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination for Purchase Returns */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    عرض {((currentPagePurchases - 1) * itemsPerPage) + 1}-{Math.min(currentPagePurchases * itemsPerPage, purchasesTotalCount)} من {purchasesTotalCount}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPagePurchases(p => Math.max(1, p - 1))}
+                      disabled={currentPagePurchases === 1}
+                    >
+                      السابق
+                    </Button>
+                    {Array.from({ length: Math.min(5, purchasesTotalPages) }, (_, i) => {
+                      let pageNum
+                      if (purchasesTotalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPagePurchases <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPagePurchases >= purchasesTotalPages - 2) {
+                        pageNum = purchasesTotalPages - 4 + i
+                      } else {
+                        pageNum = currentPagePurchases - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPagePurchases === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPagePurchases(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPagePurchases(p => Math.min(purchasesTotalPages, p + 1))}
+                      disabled={currentPagePurchases === purchasesTotalPages}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              </>
             )
           )}
         </CardContent>

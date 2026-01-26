@@ -1,4 +1,5 @@
 import { useState, ChangeEvent } from 'react'
+import React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -65,32 +66,72 @@ export default function Damaged() {
   const [quantity, setQuantity] = useState(1)
   const [damageType, setDamageType] = useState('physical_damage')
   const [notes, setNotes] = useState('')
+  const [currentPageDamaged, setCurrentPageDamaged] = useState(1)
+  const [currentPageWriteOffs, setCurrentPageWriteOffs] = useState(1)
+  const itemsPerPage = 10
   const queryClient = useQueryClient()
 
-  const { data: damagedItems, isLoading: loadingDamaged } = useQuery<DamagedItemRow[]>({
-    queryKey: ['damaged-items', search],
+  const { data: damagedItemsData, isLoading: loadingDamaged } = useQuery({
+    queryKey: ['damaged-items', search, currentPageDamaged],
     queryFn: async () => {
+      let countQuery = supabase.from('damaged_items').select('*', { count: 'exact', head: true })
+      if (search) countQuery = countQuery.ilike('damage_number', `%${search}%`)
+      const { count } = await countQuery
+
       let query = supabase.from('damaged_items')
         .select('*, product:products(code, name, name_ar), branch:branches(name_ar)')
         .order('created_at', { ascending: false })
       if (search) query = query.ilike('damage_number', `%${search}%`)
-      const { data } = await query.limit(50)
-      return (data || []) as DamagedItemRow[]
+      
+      const from = (currentPageDamaged - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      
+      return {
+        items: (data || []) as DamagedItemRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
     enabled: activeTab === 'damaged',
   })
 
-  const { data: writeOffs, isLoading: loadingWriteOffs } = useQuery<WriteOffRow[]>({
-    queryKey: ['write-offs', search],
+  const { data: writeOffsData, isLoading: loadingWriteOffs } = useQuery({
+    queryKey: ['write-offs', search, currentPageWriteOffs],
     queryFn: async () => {
+      let countQuery = supabase.from('write_offs').select('*', { count: 'exact', head: true })
+      if (search) countQuery = countQuery.ilike('writeoff_number', `%${search}%`)
+      const { count } = await countQuery
+
       let query = supabase.from('write_offs').select('*, branch:branches(name_ar)')
         .order('created_at', { ascending: false })
       if (search) query = query.ilike('writeoff_number', `%${search}%`)
-      const { data } = await query.limit(50)
-      return (data || []) as WriteOffRow[]
+      
+      const from = (currentPageWriteOffs - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      const { data } = await query.range(from, to)
+      
+      return {
+        items: (data || []) as WriteOffRow[],
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
+      }
     },
     enabled: activeTab === 'writeoffs',
   })
+
+  const damagedItems = damagedItemsData?.items || []
+  const damagedTotalPages = damagedItemsData?.totalPages || 1
+  const damagedTotalCount = damagedItemsData?.totalCount || 0
+
+  const writeOffs = writeOffsData?.items || []
+  const writeOffsTotalPages = writeOffsData?.totalPages || 1
+  const writeOffsTotalCount = writeOffsData?.totalCount || 0
+
+  React.useEffect(() => {
+    setCurrentPageDamaged(1)
+    setCurrentPageWriteOffs(1)
+  }, [search])
 
   const { data: branches } = useQuery<BranchRow[]>({
     queryKey: ['branches-list'],
@@ -111,6 +152,7 @@ export default function Damaged() {
   const createDamaged = useMutation({
     mutationFn: async () => {
       const { data: user } = await supabase.from('users').select('id').limit(1).single()
+      const userId = user ? (user as { id: string }).id : null
       const product = products?.find(p => p.id === selectedProduct)
       if (!product) throw new Error('المنتج غير موجود')
 
@@ -128,9 +170,9 @@ export default function Damaged() {
         unit_cost: product.purchase_price || 0,
         total_cost: totalCost,
         status: 'approved',
-        discovered_by: user?.id,
-        reported_by: user?.id,
-        approved_by: user?.id,
+        discovered_by: userId,
+        reported_by: userId,
+        approved_by: userId,
         notes,
       } as never)
 
@@ -141,8 +183,9 @@ export default function Damaged() {
         .select('id, quantity').eq('product_id', selectedProduct).eq('branch_id', selectedBranch).single()
       
       if (inv) {
-        await supabase.from('inventory').update({ quantity: Math.max(0, (inv.quantity || 0) - quantity) } as never)
-          .eq('id', inv.id)
+        const invRecord = inv as { id: string; quantity: number }
+        await supabase.from('inventory').update({ quantity: Math.max(0, (invRecord.quantity || 0) - quantity) } as never)
+          .eq('id', invRecord.id)
       }
     },
     onSuccess: () => {
@@ -353,42 +396,91 @@ export default function Damaged() {
             ) : !damagedItems?.length ? (
               <p className="text-center py-8 text-muted-foreground">لا توجد منتجات تالفة</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="border-b">
-                    <th className="text-right py-3 px-2">الرقم</th>
-                    <th className="text-right py-3 px-2">التاريخ</th>
-                    <th className="text-right py-3 px-2">المنتج</th>
-                    <th className="text-right py-3 px-2">الفرع</th>
-                    <th className="text-right py-3 px-2">الكمية</th>
-                    <th className="text-right py-3 px-2">نوع التلف</th>
-                    <th className="text-right py-3 px-2">التكلفة</th>
-                    <th className="text-right py-3 px-2">الحالة</th>
-                    <th className="text-right py-3 px-2">إجراءات</th>
-                  </tr></thead>
-                  <tbody>
-                    {damagedItems.map((item) => (
-                      <tr key={item.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-mono">{item.damage_number}</td>
-                        <td className="py-3 px-2">{formatDate(item.damage_date || item.created_at!)}</td>
-                        <td className="py-3 px-2">{item.product?.name_ar || item.product?.name}</td>
-                        <td className="py-3 px-2">{item.branch?.name_ar}</td>
-                        <td className="py-3 px-2">{item.quantity}</td>
-                        <td className="py-3 px-2">{damageTypes[item.damage_type || 'other']}</td>
-                        <td className="py-3 px-2">{formatCurrency(item.total_cost || 0)}</td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${damageStatus[item.status || 'discovered'].color}`}>
-                            {damageStatus[item.status || 'discovered'].label}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewDamaged(item)}><Eye className="h-4 w-4" /></Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="border-b">
+                      <th className="text-right py-3 px-2">الرقم</th>
+                      <th className="text-right py-3 px-2">التاريخ</th>
+                      <th className="text-right py-3 px-2">المنتج</th>
+                      <th className="text-right py-3 px-2">الفرع</th>
+                      <th className="text-right py-3 px-2">الكمية</th>
+                      <th className="text-right py-3 px-2">نوع التلف</th>
+                      <th className="text-right py-3 px-2">التكلفة</th>
+                      <th className="text-right py-3 px-2">الحالة</th>
+                      <th className="text-right py-3 px-2">إجراءات</th>
+                    </tr></thead>
+                    <tbody>
+                      {damagedItems.map((item) => (
+                        <tr key={item.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-2 font-mono">{item.damage_number}</td>
+                          <td className="py-3 px-2">{formatDate(item.damage_date || item.created_at!)}</td>
+                          <td className="py-3 px-2">{item.product?.name_ar || item.product?.name}</td>
+                          <td className="py-3 px-2">{item.branch?.name_ar}</td>
+                          <td className="py-3 px-2">{item.quantity}</td>
+                          <td className="py-3 px-2">{damageTypes[item.damage_type || 'other']}</td>
+                          <td className="py-3 px-2">{formatCurrency(item.total_cost || 0)}</td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${damageStatus[item.status || 'discovered'].color}`}>
+                              {damageStatus[item.status || 'discovered'].label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewDamaged(item)}><Eye className="h-4 w-4" /></Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination for Damaged Items */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    عرض {((currentPageDamaged - 1) * itemsPerPage) + 1}-{Math.min(currentPageDamaged * itemsPerPage, damagedTotalCount)} من {damagedTotalCount}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageDamaged(p => Math.max(1, p - 1))}
+                      disabled={currentPageDamaged === 1}
+                    >
+                      السابق
+                    </Button>
+                    {Array.from({ length: Math.min(5, damagedTotalPages) }, (_, i) => {
+                      let pageNum
+                      if (damagedTotalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPageDamaged <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPageDamaged >= damagedTotalPages - 2) {
+                        pageNum = damagedTotalPages - 4 + i
+                      } else {
+                        pageNum = currentPageDamaged - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPageDamaged === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPageDamaged(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageDamaged(p => Math.min(damagedTotalPages, p + 1))}
+                      disabled={currentPageDamaged === damagedTotalPages}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              </>
             )
           ) : (
             loadingWriteOffs ? (
@@ -396,41 +488,90 @@ export default function Damaged() {
             ) : !writeOffs?.length ? (
               <p className="text-center py-8 text-muted-foreground">لا توجد عمليات شطب</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="border-b">
-                    <th className="text-right py-3 px-2">الرقم</th>
-                    <th className="text-right py-3 px-2">التاريخ</th>
-                    <th className="text-right py-3 px-2">الفرع</th>
-                    <th className="text-right py-3 px-2">السبب</th>
-                    <th className="text-right py-3 px-2">عدد الأصناف</th>
-                    <th className="text-right py-3 px-2">القيمة</th>
-                    <th className="text-right py-3 px-2">الحالة</th>
-                    <th className="text-right py-3 px-2">إجراءات</th>
-                  </tr></thead>
-                  <tbody>
-                    {writeOffs.map((wo) => (
-                      <tr key={wo.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-mono">{wo.writeoff_number}</td>
-                        <td className="py-3 px-2">{formatDate(wo.writeoff_date || wo.created_at!)}</td>
-                        <td className="py-3 px-2">{wo.branch?.name_ar}</td>
-                        <td className="py-3 px-2">{wo.writeoff_reason}</td>
-                        <td className="py-3 px-2">{wo.total_items || 0}</td>
-                        <td className="py-3 px-2">{formatCurrency(wo.total_value || 0)}</td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            wo.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            {wo.status === 'completed' ? 'مكتمل' : 'معلق'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewWriteOff(wo)}><Eye className="h-4 w-4" /></Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="border-b">
+                      <th className="text-right py-3 px-2">الرقم</th>
+                      <th className="text-right py-3 px-2">التاريخ</th>
+                      <th className="text-right py-3 px-2">الفرع</th>
+                      <th className="text-right py-3 px-2">السبب</th>
+                      <th className="text-right py-3 px-2">عدد الأصناف</th>
+                      <th className="text-right py-3 px-2">القيمة</th>
+                      <th className="text-right py-3 px-2">الحالة</th>
+                      <th className="text-right py-3 px-2">إجراءات</th>
+                    </tr></thead>
+                    <tbody>
+                      {writeOffs.map((wo) => (
+                        <tr key={wo.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-2 font-mono">{wo.writeoff_number}</td>
+                          <td className="py-3 px-2">{formatDate(wo.writeoff_date || wo.created_at!)}</td>
+                          <td className="py-3 px-2">{wo.branch?.name_ar}</td>
+                          <td className="py-3 px-2">{wo.writeoff_reason}</td>
+                          <td className="py-3 px-2">{wo.total_items || 0}</td>
+                          <td className="py-3 px-2">{formatCurrency(wo.total_value || 0)}</td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              wo.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                              {wo.status === 'completed' ? 'مكتمل' : 'معلق'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewWriteOff(wo)}><Eye className="h-4 w-4" /></Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination for Write-Offs */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    عرض {((currentPageWriteOffs - 1) * itemsPerPage) + 1}-{Math.min(currentPageWriteOffs * itemsPerPage, writeOffsTotalCount)} من {writeOffsTotalCount}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageWriteOffs(p => Math.max(1, p - 1))}
+                      disabled={currentPageWriteOffs === 1}
+                    >
+                      السابق
+                    </Button>
+                    {Array.from({ length: Math.min(5, writeOffsTotalPages) }, (_, i) => {
+                      let pageNum
+                      if (writeOffsTotalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPageWriteOffs <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPageWriteOffs >= writeOffsTotalPages - 2) {
+                        pageNum = writeOffsTotalPages - 4 + i
+                      } else {
+                        pageNum = currentPageWriteOffs - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPageWriteOffs === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPageWriteOffs(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPageWriteOffs(p => Math.min(writeOffsTotalPages, p + 1))}
+                      disabled={currentPageWriteOffs === writeOffsTotalPages}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              </>
             )
           )}
         </CardContent>
