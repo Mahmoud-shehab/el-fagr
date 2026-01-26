@@ -52,6 +52,7 @@ export default function POS() {
   const [discount, setDiscount] = useState(0)
   const [paidAmount, setPaidAmount] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [hasTax, setHasTax] = useState(false)
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
   const [showBranchSelect, setShowBranchSelect] = useState(false)
   const queryClient = useQueryClient()
@@ -142,7 +143,8 @@ export default function POS() {
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
   const discountAmount = (subtotal * discount) / 100
-  const total = subtotal - discountAmount
+  const taxAmount = hasTax ? (subtotal - discountAmount) * 0.14 : 0 // 14% tax rate
+  const total = subtotal - discountAmount + taxAmount
   const paid = parseFloat(paidAmount) || 0
   const remaining = total - paid
 
@@ -208,6 +210,7 @@ export default function POS() {
     setDiscount(0)
     setPaidAmount('')
     setDueDate('')
+    setHasTax(false)
   }
 
   // Create sale mutation
@@ -234,12 +237,15 @@ export default function POS() {
         customer_name: selectedCustomer?.name_ar || selectedCustomer?.name || null,
         subtotal,
         discount_amount: discountAmount,
+        tax_amount: taxAmount,
         total_amount: total,
         paid_amount: paid,
         remaining_amount: remaining > 0 ? remaining : 0,
         payment_method: paymentMethod,
         status: remaining <= 0 ? 'paid' : 'partially_paid',
         due_date: paymentMethod === 'credit' && dueDate ? dueDate : null,
+        has_tax: hasTax,
+        payment_status: remaining <= 0 ? 'paid' : 'credit',
       }
       
       const { data: sale, error: saleError } = await supabase
@@ -490,6 +496,38 @@ export default function POS() {
             />
             <span className="text-sm text-muted-foreground">({formatCurrency(discountAmount)})</span>
           </div>
+
+          {/* Tax Radio Buttons */}
+          <div className="flex items-center gap-4 py-2 border-y">
+            <span className="text-sm font-medium">الضريبة:</span>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="tax"
+                checked={!hasTax}
+                onChange={() => setHasTax(false)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">بدون ضريبة</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="tax"
+                checked={hasTax}
+                onChange={() => setHasTax(true)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">بضريبة 14%</span>
+            </label>
+          </div>
+
+          {hasTax && (
+            <div className="flex justify-between text-sm text-blue-600">
+              <span>الضريبة (14%)</span>
+              <span>{formatCurrency(taxAmount)}</span>
+            </div>
+          )}
 
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>الإجمالي</span>
