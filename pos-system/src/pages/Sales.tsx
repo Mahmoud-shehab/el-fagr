@@ -196,7 +196,7 @@ export default function Sales() {
       if (sale) {
         // Get cashier name separately
         let cashierName = ''
-        const saleData = sale as { cashier_id?: string; customer?: { name_ar?: string; phone?: string }; customer_name?: string; branch?: { name_ar?: string } }
+        const saleData = sale as { cashier_id?: string; customer_id?: string; customer?: { name_ar?: string; phone?: string }; customer_name?: string; branch?: { name_ar?: string } }
         if (saleData.cashier_id) {
           const { data: cashier } = await supabase
             .from('users')
@@ -212,12 +212,30 @@ export default function Sales() {
           .select('*, product:products(name_ar)')
           .eq('sale_id', saleId)
 
+        // Get customer's previous balance (before this sale)
+        let customerPreviousBalance = 0
+        if (saleData.customer_id) {
+          const { data: customer } = await supabase
+            .from('customers')
+            .select('current_balance')
+            .eq('id', saleData.customer_id)
+            .single()
+          
+          if (customer) {
+            const customerData = customer as { current_balance?: number }
+            // Current balance includes this sale, so subtract this sale's remaining amount to get previous balance
+            const saleDetails = sale as SaleDetails
+            customerPreviousBalance = (customerData.current_balance || 0) - (saleDetails.remaining_amount || 0)
+          }
+        }
+
         const saleDetails = sale as SaleDetails
         printInvoice({
           invoice_number: saleDetails.invoice_number,
           invoice_date: saleDetails.invoice_date || saleDetails.created_at || '',
           customer_name: saleData.customer?.name_ar || saleData.customer_name,
           customer_phone: saleData.customer?.phone,
+          customer_previous_balance: customerPreviousBalance > 0 ? customerPreviousBalance : undefined,
           items: (items || []).map((item: SaleItem & { product: { name_ar: string } }) => ({
             product_name: item.product?.name_ar || '',
             quantity: item.quantity,

@@ -12,6 +12,7 @@ interface InvoiceData {
   invoice_date: string
   customer_name?: string
   customer_phone?: string
+  customer_previous_balance?: number
   items: InvoiceItem[]
   subtotal: number
   discount_amount: number
@@ -96,12 +97,24 @@ export function printInvoice(data: InvoiceData) {
       </table>
 
       <div class="totals">
+        ${data.customer_previous_balance && data.customer_previous_balance > 0 ? `
+          <div class="total-row" style="color: #d97706; font-weight: bold; border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 5px;">
+            <span>الرصيد السابق:</span>
+            <span>${formatCurrency(data.customer_previous_balance)}</span>
+          </div>
+        ` : ''}
         <div class="total-row"><span>المجموع الفرعي:</span><span>${formatCurrency(data.subtotal)}</span></div>
         ${data.discount_amount > 0 ? `<div class="total-row"><span>الخصم:</span><span>-${formatCurrency(data.discount_amount)}</span></div>` : ''}
         ${data.tax_amount > 0 ? `<div class="total-row"><span>الضريبة:</span><span>${formatCurrency(data.tax_amount)}</span></div>` : ''}
         <div class="total-row grand"><span>الإجمالي:</span><span>${formatCurrency(data.total_amount)}</span></div>
         <div class="total-row"><span>المدفوع:</span><span>${formatCurrency(data.paid_amount)}</span></div>
         ${data.remaining_amount > 0 ? `<div class="total-row"><span>المتبقي:</span><span>${formatCurrency(data.remaining_amount)}</span></div>` : ''}
+        ${data.customer_previous_balance && data.customer_previous_balance > 0 ? `
+          <div class="total-row" style="color: #dc2626; font-weight: bold; font-size: 14px; border-top: 2px solid #000; padding-top: 5px; margin-top: 5px;">
+            <span>إجمالي المديونية:</span>
+            <span>${formatCurrency(data.customer_previous_balance + (data.remaining_amount || 0))}</span>
+          </div>
+        ` : ''}
         <div class="total-row"><span>طريقة الدفع:</span><span>${data.payment_method === 'cash' ? 'نقدي' : 'آجل'}</span></div>
       </div>
 
