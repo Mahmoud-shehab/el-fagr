@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Package, Users, ShoppingCart, Truck, RotateCcw,
   ArrowLeftRight, ClipboardList, AlertTriangle, Settings, LogOut, Monitor, FileBarChart,
-  DollarSign, FileText, PackageCheck
+  DollarSign, FileText, PackageCheck, Receipt
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -21,6 +21,7 @@ const menuItems = [
   { icon: Users, label: 'العملاء', path: '/customers' },
   { icon: FileText, label: 'كشف حساب عميل', path: '/customer-statement' },
   { icon: Users, label: 'الموردين', path: '/suppliers' },
+  { icon: Receipt, label: 'المصروفات', path: '/expenses' },
   { icon: DollarSign, label: 'سحوبات الشركاء', path: '/partner-withdrawals' },
   { icon: FileBarChart, label: 'التقارير', path: '/reports' },
   { icon: Settings, label: 'الإعدادات', path: '/settings' },
