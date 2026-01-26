@@ -30,7 +30,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-white border-l h-screen flex flex-col">
       <div className="p-4 border-b">
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="الفجر الجديدة" className="w-12 h-12 rounded-lg object-contain" />
+          <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-12 h-12 rounded-lg object-contain" />
           <div>
             <h1 className="text-xl font-bold text-primary">الفجر الجديدة</h1>
             <p className="text-sm text-muted-foreground">{user?.branch?.name_ar || 'المخزن الرئيسي'}</p>

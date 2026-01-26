@@ -52,7 +52,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/logo.jpg" alt="الفجر الجديدة" className="w-24 h-24 rounded-xl object-contain" />
+            <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-24 h-24 rounded-xl object-contain" />
           </div>
           <CardTitle className="text-2xl">الفجر الجديدة</CardTitle>
           <CardDescription>نظام نقاط البيع</CardDescription>
