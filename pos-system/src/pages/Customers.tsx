@@ -47,6 +47,7 @@ export default function Customers() {
   const [search, setSearch] = useState('')
   const [showDialog, setShowDialog] = useState(false)
   const [overdueFilter, setOverdueFilter] = useState<'all' | 'overdue'>('all')
+  const [editingCustomer, setEditingCustomer] = useState<CustomerRow | null>(null)
   const [formData, setFormData] = useState({
     name_ar: '',
     phone: '',
@@ -139,30 +140,70 @@ export default function Customers() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const code = `CUS-${Date.now()}`
-      const { error } = await supabase.from('customers').insert({
-        code,
-        name_ar: formData.name_ar,
-        name: formData.name_ar,
-        phone: formData.phone,
-        email: formData.email || null,
-        address: formData.address || null,
-        tax_card_number: formData.tax_card_number || null,
-        credit_limit: formData.credit_limit,
-        branch_id: formData.branch_id || null,
-        current_balance: 0,
-        status: 'active',
-      })
-      if (error) throw error
+      if (editingCustomer) {
+        // Update existing customer
+        const { error } = await supabase
+          .from('customers')
+          .update({
+            name_ar: formData.name_ar,
+            name: formData.name_ar,
+            phone: formData.phone,
+            email: formData.email || null,
+            address: formData.address || null,
+            tax_card_number: formData.tax_card_number || null,
+            credit_limit: formData.credit_limit,
+            branch_id: formData.branch_id || null,
+          } as never)
+          .eq('id', editingCustomer.id)
+        if (error) throw error
+      } else {
+        // Create new customer
+        const code = `CUS-${Date.now()}`
+        const { error } = await supabase.from('customers').insert({
+          code,
+          name_ar: formData.name_ar,
+          name: formData.name_ar,
+          phone: formData.phone,
+          email: formData.email || null,
+          address: formData.address || null,
+          tax_card_number: formData.tax_card_number || null,
+          credit_limit: formData.credit_limit,
+          branch_id: formData.branch_id || null,
+          current_balance: 0,
+          status: 'active',
+        } as never)
+        if (error) throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
       setShowDialog(false)
+      setEditingCustomer(null)
       setFormData({ name_ar: '', phone: '', email: '', address: '', credit_limit: 0, branch_id: '', tax_card_number: '' })
-      alert('تم إضافة العميل بنجاح!')
+      alert(editingCustomer ? 'تم تحديث العميل بنجاح!' : 'تم إضافة العميل بنجاح!')
     },
     onError: (err) => alert('خطأ: ' + err.message),
   })
+
+  const handleEdit = (customer: CustomerRow) => {
+    setEditingCustomer(customer)
+    setFormData({
+      name_ar: customer.name_ar || customer.name,
+      phone: customer.phone,
+      email: customer.email || '',
+      address: customer.address || '',
+      credit_limit: customer.credit_limit || 0,
+      branch_id: customer.branch_id || '',
+      tax_card_number: customer.tax_card_number || '',
+    })
+    setShowDialog(true)
+  }
+
+  const handleCloseDialog = () => {
+    setShowDialog(false)
+    setEditingCustomer(null)
+    setFormData({ name_ar: '', phone: '', email: '', address: '', credit_limit: 0, branch_id: '', tax_card_number: '' })
+  }
 
   return (
     <div className="space-y-6">
@@ -177,10 +218,10 @@ export default function Customers() {
         </Button>
       </div>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-lg">
+      <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
+        <DialogContent onClose={handleCloseDialog} className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>إضافة عميل جديد</DialogTitle>
+            <DialogTitle>{editingCustomer ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -237,7 +278,7 @@ export default function Customers() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={handleCloseDialog}>إلغاء</Button>
             <Button onClick={() => createMutation.mutate()}
               disabled={!formData.name_ar || !formData.phone || !formData.branch_id || createMutation.isPending}>
               {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
@@ -337,8 +378,10 @@ export default function Customers() {
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(customer.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(customer)} title="تعديل">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(customer.id)} title="حذف">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
