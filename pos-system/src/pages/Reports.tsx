@@ -160,7 +160,7 @@ export default function Reports() {
       
       {/* Print Header - Only visible when printing */}
       <div className="print-header">
-        <img src="/logo.jpg" alt="شركة الفجر الجديد" />
+        <img src="/el-fagr/logo.jpg" alt="شركة الفجر الجديد" />
         <h2>شركة الفجر الجديد</h2>
         <h3>{reports.find(r => r.key === activeReport)?.label}</h3>
         {dateFrom && dateTo && (
