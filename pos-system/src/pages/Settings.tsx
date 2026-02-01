@@ -167,37 +167,69 @@ function BranchesSettings() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>الفروع</CardTitle>
-        <Button size="sm">إضافة فرع</Button>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg">الفروع</CardTitle>
+        <Button size="sm" className="w-full sm:w-auto">إضافة فرع</Button>
       </CardHeader>
       <CardContent>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-right py-2">الكود</th>
-              <th className="text-right py-2">الاسم</th>
-              <th className="text-right py-2">النوع</th>
-              <th className="text-right py-2">الهاتف</th>
-              <th className="text-right py-2">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {branches?.map((branch) => (
-              <tr key={branch.id} className="border-b">
-                <td className="py-2">{branch.code}</td>
-                <td className="py-2">{branch.name_ar}</td>
-                <td className="py-2">{branch.branch_type === 'warehouse' ? 'مخزن' : 'منفذ بيع'}</td>
-                <td className="py-2">{branch.phone}</td>
-                <td className="py-2">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                <th className="text-right py-2 px-1 sm:px-2">النوع</th>
+                <th className="text-right py-2 px-1 sm:px-2">الهاتف</th>
+                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {branches?.map((branch) => (
+                <tr key={branch.id} className="border-b">
+                  <td className="py-2 px-1 sm:px-2">{branch.code}</td>
+                  <td className="py-2 px-1 sm:px-2">{branch.name_ar}</td>
+                  <td className="py-2 px-1 sm:px-2">{branch.branch_type === 'warehouse' ? 'مخزن' : 'منفذ بيع'}</td>
+                  <td className="py-2 px-1 sm:px-2">{branch.phone}</td>
+                  <td className="py-2 px-1 sm:px-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${branch.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {branch.status === 'active' ? 'نشط' : 'غير نشط'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden space-y-3">
+          {branches?.map((branch) => (
+            <Card key={branch.id} className="p-3">
+              <div className="space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{branch.name_ar}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{branch.code}</p>
+                  </div>
                   <span className={`px-2 py-1 rounded-full text-xs ${branch.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                     {branch.status === 'active' ? 'نشط' : 'غير نشط'}
                   </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">النوع:</span>
+                    <span className="font-medium">{branch.branch_type === 'warehouse' ? 'مخزن' : 'منفذ بيع'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">الهاتف:</span>
+                    <span className="font-medium">{branch.phone}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -214,39 +246,75 @@ function UsersSettings() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>المستخدمين</CardTitle>
-        <Button size="sm">إضافة مستخدم</Button>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg">المستخدمين</CardTitle>
+        <Button size="sm" className="w-full sm:w-auto">إضافة مستخدم</Button>
       </CardHeader>
       <CardContent>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-right py-2">الكود</th>
-              <th className="text-right py-2">الاسم</th>
-              <th className="text-right py-2">اسم المستخدم</th>
-              <th className="text-right py-2">الدور</th>
-              <th className="text-right py-2">الفرع</th>
-              <th className="text-right py-2">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users?.map((user) => (
-              <tr key={user.id} className="border-b">
-                <td className="py-2">{user.employee_code}</td>
-                <td className="py-2">{user.full_name}</td>
-                <td className="py-2">{user.username}</td>
-                <td className="py-2">{user.role?.name_ar}</td>
-                <td className="py-2">{user.branch?.name_ar || 'الكل'}</td>
-                <td className="py-2">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                <th className="text-right py-2 px-1 sm:px-2">اسم المستخدم</th>
+                <th className="text-right py-2 px-1 sm:px-2">الدور</th>
+                <th className="text-right py-2 px-1 sm:px-2">الفرع</th>
+                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users?.map((user) => (
+                <tr key={user.id} className="border-b">
+                  <td className="py-2 px-1 sm:px-2">{user.employee_code}</td>
+                  <td className="py-2 px-1 sm:px-2">{user.full_name}</td>
+                  <td className="py-2 px-1 sm:px-2">{user.username}</td>
+                  <td className="py-2 px-1 sm:px-2">{user.role?.name_ar}</td>
+                  <td className="py-2 px-1 sm:px-2">{user.branch?.name_ar || 'الكل'}</td>
+                  <td className="py-2 px-1 sm:px-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {user.status === 'active' ? 'نشط' : 'غير نشط'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden space-y-3">
+          {users?.map((user) => (
+            <Card key={user.id} className="p-3">
+              <div className="space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{user.full_name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{user.employee_code}</p>
+                  </div>
                   <span className={`px-2 py-1 rounded-full text-xs ${user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                     {user.status === 'active' ? 'نشط' : 'غير نشط'}
                   </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">اسم المستخدم:</span>
+                    <span className="font-medium">{user.username}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">الدور:</span>
+                    <span className="font-medium">{user.role?.name_ar}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">الفرع:</span>
+                    <span className="font-medium">{user.branch?.name_ar || 'الكل'}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -263,33 +331,53 @@ function CategoriesSettings() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>التصنيفات</CardTitle>
-        <Button size="sm">إضافة تصنيف</Button>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg">التصنيفات</CardTitle>
+        <Button size="sm" className="w-full sm:w-auto">إضافة تصنيف</Button>
       </CardHeader>
       <CardContent>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-right py-2">الكود</th>
-              <th className="text-right py-2">الاسم</th>
-              <th className="text-right py-2">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories?.map((cat) => (
-              <tr key={cat.id} className="border-b">
-                <td className="py-2">{cat.code}</td>
-                <td className="py-2">{cat.name_ar}</td>
-                <td className="py-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {cat.is_active ? 'نشط' : 'غير نشط'}
-                  </span>
-                </td>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {categories?.map((cat) => (
+                <tr key={cat.id} className="border-b">
+                  <td className="py-2 px-1 sm:px-2">{cat.code}</td>
+                  <td className="py-2 px-1 sm:px-2">{cat.name_ar}</td>
+                  <td className="py-2 px-1 sm:px-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {cat.is_active ? 'نشط' : 'غير نشط'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden space-y-3">
+          {categories?.map((cat) => (
+            <Card key={cat.id} className="p-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium text-sm">{cat.name_ar}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{cat.code}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                  {cat.is_active ? 'نشط' : 'غير نشط'}
+                </span>
+              </div>
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -306,33 +394,53 @@ function BrandsSettings() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>الماركات</CardTitle>
-        <Button size="sm">إضافة ماركة</Button>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg">الماركات</CardTitle>
+        <Button size="sm" className="w-full sm:w-auto">إضافة ماركة</Button>
       </CardHeader>
       <CardContent>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-right py-2">الكود</th>
-              <th className="text-right py-2">الاسم</th>
-              <th className="text-right py-2">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {brands?.map((brand) => (
-              <tr key={brand.id} className="border-b">
-                <td className="py-2">{brand.code}</td>
-                <td className="py-2">{brand.name}</td>
-                <td className="py-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {brand.is_active ? 'نشط' : 'غير نشط'}
-                  </span>
-                </td>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {brands?.map((brand) => (
+                <tr key={brand.id} className="border-b">
+                  <td className="py-2 px-1 sm:px-2">{brand.code}</td>
+                  <td className="py-2 px-1 sm:px-2">{brand.name}</td>
+                  <td className="py-2 px-1 sm:px-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {brand.is_active ? 'نشط' : 'غير نشط'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden space-y-3">
+          {brands?.map((brand) => (
+            <Card key={brand.id} className="p-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium text-sm">{brand.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{brand.code}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                  {brand.is_active ? 'نشط' : 'غير نشط'}
+                </span>
+              </div>
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -349,33 +457,53 @@ function UnitsSettings() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>الوحدات</CardTitle>
-        <Button size="sm">إضافة وحدة</Button>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg">الوحدات</CardTitle>
+        <Button size="sm" className="w-full sm:w-auto">إضافة وحدة</Button>
       </CardHeader>
       <CardContent>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-right py-2">الكود</th>
-              <th className="text-right py-2">الاسم</th>
-              <th className="text-right py-2">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {units?.map((unit) => (
-              <tr key={unit.id} className="border-b">
-                <td className="py-2">{unit.code}</td>
-                <td className="py-2">{unit.name_ar}</td>
-                <td className="py-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {unit.is_active ? 'نشط' : 'غير نشط'}
-                  </span>
-                </td>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {units?.map((unit) => (
+                <tr key={unit.id} className="border-b">
+                  <td className="py-2 px-1 sm:px-2">{unit.code}</td>
+                  <td className="py-2 px-1 sm:px-2">{unit.name_ar}</td>
+                  <td className="py-2 px-1 sm:px-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {unit.is_active ? 'نشط' : 'غير نشط'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden space-y-3">
+          {units?.map((unit) => (
+            <Card key={unit.id} className="p-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium text-sm">{unit.name_ar}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{unit.code}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                  {unit.is_active ? 'نشط' : 'غير نشط'}
+                </span>
+              </div>
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
