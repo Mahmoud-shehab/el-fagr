@@ -111,9 +111,9 @@ export default function Suppliers() {
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>إضافة مورد جديد</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">إضافة مورد جديد</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -148,9 +148,10 @@ export default function Suppliers() {
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">إلغاء</Button>
             <Button onClick={() => createMutation.mutate()}
-              disabled={!formData.name_ar || !formData.phone || createMutation.isPending}>
+              disabled={!formData.name_ar || !formData.phone || createMutation.isPending}
+              className="w-full sm:w-auto">
               {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
             </Button>
           </DialogFooter>
@@ -179,7 +180,9 @@ export default function Suppliers() {
               <div className="mb-4 text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} مورد
               </div>
-              <div className="overflow-x-auto">
+              
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -238,16 +241,87 @@ export default function Suppliers() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards */}
+            <div className="block md:hidden space-y-3">
+              {suppliers.map((supplier) => (
+                <Card key={supplier.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold">{supplier.name_ar || supplier.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{supplier.code}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs ${statusLabels[supplier.status || 'active'].color}`}>
+                        {statusLabels[supplier.status || 'active'].label}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{supplier.phone}</span>
+                      </div>
+                      {supplier.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-xs">{supplier.email}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-muted-foreground">الرصيد:</span>
+                        <span className={`font-bold ${supplier.current_balance && supplier.current_balance > 0 ? 'text-destructive' : ''}`}>
+                          {formatCurrency(supplier.current_balance || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">حد الائتمان:</span>
+                        <span className="font-medium">{formatCurrency(supplier.credit_limit || 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">التقييم:</span>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${star <= (supplier.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Edit className="h-4 w-4 ml-2" />
+                        تعديل
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => deleteMutation.mutate(supplier.id)}
+                      >
+                        <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+                        حذف
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>السابق</Button>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between mt-4 pt-4 border-t gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="text-xs sm:text-sm">السابق</Button>
+                <div className="flex items-center gap-1 sm:gap-2">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i
-                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">{pageNum}</Button>
+                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm">{pageNum}</Button>
                   })}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>التالي</Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="text-xs sm:text-sm">التالي</Button>
               </div>
             )}
           </>

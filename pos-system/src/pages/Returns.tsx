@@ -182,15 +182,16 @@ export default function Returns() {
   }, [search])
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">المرتجعات</h1>
-          <p className="text-muted-foreground">إدارة مرتجعات المبيعات والمشتريات</p>
+          <h1 className="text-xl md:text-2xl font-bold">المرتجعات</h1>
+          <p className="text-sm text-muted-foreground">إدارة مرتجعات المبيعات والمشتريات</p>
         </div>
-        <Button onClick={() => setShowNewReturn(true)}>
+        <Button onClick={() => setShowNewReturn(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 ml-2" />
-          مرتجع جديد
+          <span className="hidden sm:inline">مرتجع جديد</span>
+          <span className="sm:hidden">جديد</span>
         </Button>
       </div>
 
@@ -235,7 +236,8 @@ export default function Returns() {
               <p className="text-center py-8 text-muted-foreground">لا توجد مرتجعات</p>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
@@ -293,9 +295,71 @@ export default function Returns() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Cards */}
+                <div className="block md:hidden space-y-3">
+                  {salesReturns.map((ret) => (
+                    <Card key={ret.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-mono text-sm font-bold">{ret.return_number}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(ret.return_date || ret.created_at!)}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs ${salesReturnStatus[ret.status || 'pending'].color}`}>
+                            {salesReturnStatus[ret.status || 'pending'].label}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">رقم الفاتورة:</span>
+                            <span className="font-medium">{ret.sale?.invoice_number}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">العميل:</span>
+                            <span className="font-medium">{ret.customer?.name_ar || ret.customer?.name || '-'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">المبلغ:</span>
+                            <span className="font-bold text-primary">{formatCurrency(ret.total_amount || 0)}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setSelectedReturn(ret.id)}
+                          >
+                            <Eye className="h-4 w-4 ml-2" />
+                            عرض
+                          </Button>
+                          {ret.status === 'pending' && (
+                            <Button 
+                              size="sm"
+                              className="flex-1"
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from('sales_returns')
+                                  .update({ status: 'completed' })
+                                  .eq('id', ret.id)
+                                if (!error) {
+                                  alert('تم تأكيد المرتجع!')
+                                  queryClient.invalidateQueries({ queryKey: ['sales-returns'] })
+                                }
+                              }}
+                            >
+                              تأكيد
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
                 
                 {/* Pagination for Sales Returns */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
                     عرض {((currentPageSales - 1) * itemsPerPage) + 1}-{Math.min(currentPageSales * itemsPerPage, salesTotalCount)} من {salesTotalCount}
                   </div>
@@ -305,6 +369,7 @@ export default function Returns() {
                       size="sm"
                       onClick={() => setCurrentPageSales(p => Math.max(1, p - 1))}
                       disabled={currentPageSales === 1}
+                      className="text-xs sm:text-sm"
                     >
                       السابق
                     </Button>
@@ -325,6 +390,7 @@ export default function Returns() {
                           variant={currentPageSales === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPageSales(pageNum)}
+                          className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm"
                         >
                           {pageNum}
                         </Button>
@@ -335,6 +401,7 @@ export default function Returns() {
                       size="sm"
                       onClick={() => setCurrentPageSales(p => Math.min(salesTotalPages, p + 1))}
                       disabled={currentPageSales === salesTotalPages}
+                      className="text-xs sm:text-sm"
                     >
                       التالي
                     </Button>
@@ -349,7 +416,8 @@ export default function Returns() {
               <p className="text-center py-8 text-muted-foreground">لا توجد مرتجعات</p>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
@@ -389,9 +457,51 @@ export default function Returns() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Cards */}
+                <div className="block md:hidden space-y-3">
+                  {purchaseReturns.map((ret) => (
+                    <Card key={ret.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-mono text-sm font-bold">{ret.return_number}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(ret.return_date || ret.created_at!)}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs ${purchaseReturnStatus[ret.status || 'draft'].color}`}>
+                            {purchaseReturnStatus[ret.status || 'draft'].label}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">رقم الفاتورة:</span>
+                            <span className="font-medium">{ret.purchase?.invoice_number}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">المورد:</span>
+                            <span className="font-medium">{ret.supplier?.name_ar || ret.supplier?.name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">المبلغ:</span>
+                            <span className="font-bold text-primary">{formatCurrency(ret.total_amount || 0)}</span>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setSelectedReturn(ret.id)}
+                        >
+                          <Eye className="h-4 w-4 ml-2" />
+                          عرض التفاصيل
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
                 
                 {/* Pagination for Purchase Returns */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
                     عرض {((currentPagePurchases - 1) * itemsPerPage) + 1}-{Math.min(currentPagePurchases * itemsPerPage, purchasesTotalCount)} من {purchasesTotalCount}
                   </div>
@@ -401,6 +511,7 @@ export default function Returns() {
                       size="sm"
                       onClick={() => setCurrentPagePurchases(p => Math.max(1, p - 1))}
                       disabled={currentPagePurchases === 1}
+                      className="text-xs sm:text-sm"
                     >
                       السابق
                     </Button>
@@ -421,6 +532,7 @@ export default function Returns() {
                           variant={currentPagePurchases === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPagePurchases(pageNum)}
+                          className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm"
                         >
                           {pageNum}
                         </Button>
@@ -431,6 +543,7 @@ export default function Returns() {
                       size="sm"
                       onClick={() => setCurrentPagePurchases(p => Math.min(purchasesTotalPages, p + 1))}
                       disabled={currentPagePurchases === purchasesTotalPages}
+                      className="text-xs sm:text-sm"
                     >
                       التالي
                     </Button>
@@ -444,9 +557,9 @@ export default function Returns() {
 
       {/* New Return Dialog */}
       <Dialog open={showNewReturn} onOpenChange={setShowNewReturn}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {activeTab === 'sales' ? 'مرتجع مبيعات جديد' : 'مرتجع مشتريات جديد'}
             </DialogTitle>
           </DialogHeader>
@@ -467,9 +580,9 @@ export default function Returns() {
       {/* View Return Dialog */}
       {selectedReturn && (
         <Dialog open={!!selectedReturn} onOpenChange={() => setSelectedReturn(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-auto">
             <DialogHeader>
-              <DialogTitle>تفاصيل المرتجع</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">تفاصيل المرتجع</DialogTitle>
             </DialogHeader>
             <ReturnDetails 
               returnId={selectedReturn}

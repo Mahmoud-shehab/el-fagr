@@ -219,24 +219,25 @@ export default function Damaged() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">التالف والهالك</h1>
-          <p className="text-muted-foreground">إدارة المنتجات التالفة وعمليات الشطب</p>
+          <h1 className="text-xl md:text-2xl font-bold">التالف والهالك</h1>
+          <p className="text-sm text-muted-foreground">إدارة المنتجات التالفة وعمليات الشطب</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowDialog(true)}>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button onClick={() => setShowDialog(true)} className="flex-1 sm:flex-none">
             <Plus className="h-4 w-4 ml-2" />
-            تسجيل تالف
+            <span className="hidden sm:inline">تسجيل تالف</span>
+            <span className="sm:hidden">جديد</span>
           </Button>
         </div>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-lg">
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>تسجيل منتج تالف</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">تسجيل منتج تالف</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -287,9 +288,9 @@ export default function Damaged() {
 
       {/* View Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent onClose={() => setShowViewDialog(false)} className="max-w-lg">
+        <DialogContent onClose={() => setShowViewDialog(false)} className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {selectedDamaged ? `تفاصيل التالف - ${selectedDamaged.damage_number}` : 
                selectedWriteOff ? `تفاصيل الشطب - ${selectedWriteOff.writeoff_number}` : 'تفاصيل'}
             </DialogTitle>
@@ -397,7 +398,8 @@ export default function Damaged() {
               <p className="text-center py-8 text-muted-foreground">لا توجد منتجات تالفة</p>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead><tr className="border-b">
                       <th className="text-right py-3 px-2">الرقم</th>
@@ -433,9 +435,59 @@ export default function Damaged() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Cards */}
+                <div className="block md:hidden space-y-3">
+                  {damagedItems.map((item) => (
+                    <Card key={item.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-mono text-sm font-bold">{item.damage_number}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(item.damage_date || item.created_at!)}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs ${damageStatus[item.status || 'discovered'].color}`}>
+                            {damageStatus[item.status || 'discovered'].label}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">المنتج:</span>
+                            <span className="font-medium">{item.product?.name_ar || item.product?.name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">الفرع:</span>
+                            <span className="font-medium">{item.branch?.name_ar}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">الكمية:</span>
+                            <span className="font-medium">{item.quantity}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">نوع التلف:</span>
+                            <span className="font-medium">{damageTypes[item.damage_type || 'other']}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">التكلفة:</span>
+                            <span className="font-bold text-destructive">{formatCurrency(item.total_cost || 0)}</span>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleViewDamaged(item)}
+                        >
+                          <Eye className="h-4 w-4 ml-2" />
+                          عرض التفاصيل
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
                 
                 {/* Pagination for Damaged Items */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
                     عرض {((currentPageDamaged - 1) * itemsPerPage) + 1}-{Math.min(currentPageDamaged * itemsPerPage, damagedTotalCount)} من {damagedTotalCount}
                   </div>
@@ -445,6 +497,7 @@ export default function Damaged() {
                       size="sm"
                       onClick={() => setCurrentPageDamaged(p => Math.max(1, p - 1))}
                       disabled={currentPageDamaged === 1}
+                      className="text-xs sm:text-sm"
                     >
                       السابق
                     </Button>
@@ -465,6 +518,7 @@ export default function Damaged() {
                           variant={currentPageDamaged === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPageDamaged(pageNum)}
+                          className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm"
                         >
                           {pageNum}
                         </Button>
@@ -475,6 +529,7 @@ export default function Damaged() {
                       size="sm"
                       onClick={() => setCurrentPageDamaged(p => Math.min(damagedTotalPages, p + 1))}
                       disabled={currentPageDamaged === damagedTotalPages}
+                      className="text-xs sm:text-sm"
                     >
                       التالي
                     </Button>
@@ -489,7 +544,8 @@ export default function Damaged() {
               <p className="text-center py-8 text-muted-foreground">لا توجد عمليات شطب</p>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead><tr className="border-b">
                       <th className="text-right py-3 px-2">الرقم</th>
@@ -524,9 +580,56 @@ export default function Damaged() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Cards */}
+                <div className="block md:hidden space-y-3">
+                  {writeOffs.map((wo) => (
+                    <Card key={wo.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-mono text-sm font-bold">{wo.writeoff_number}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(wo.writeoff_date || wo.created_at!)}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            wo.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                            {wo.status === 'completed' ? 'مكتمل' : 'معلق'}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">الفرع:</span>
+                            <span className="font-medium">{wo.branch?.name_ar}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">السبب:</span>
+                            <span className="font-medium">{wo.writeoff_reason}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">عدد الأصناف:</span>
+                            <span className="font-medium">{wo.total_items || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">القيمة:</span>
+                            <span className="font-bold text-destructive">{formatCurrency(wo.total_value || 0)}</span>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleViewWriteOff(wo)}
+                        >
+                          <Eye className="h-4 w-4 ml-2" />
+                          عرض التفاصيل
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
                 
                 {/* Pagination for Write-Offs */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
                     عرض {((currentPageWriteOffs - 1) * itemsPerPage) + 1}-{Math.min(currentPageWriteOffs * itemsPerPage, writeOffsTotalCount)} من {writeOffsTotalCount}
                   </div>
@@ -536,6 +639,7 @@ export default function Damaged() {
                       size="sm"
                       onClick={() => setCurrentPageWriteOffs(p => Math.max(1, p - 1))}
                       disabled={currentPageWriteOffs === 1}
+                      className="text-xs sm:text-sm"
                     >
                       السابق
                     </Button>
@@ -556,6 +660,7 @@ export default function Damaged() {
                           variant={currentPageWriteOffs === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPageWriteOffs(pageNum)}
+                          className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm"
                         >
                           {pageNum}
                         </Button>
@@ -566,6 +671,7 @@ export default function Damaged() {
                       size="sm"
                       onClick={() => setCurrentPageWriteOffs(p => Math.min(writeOffsTotalPages, p + 1))}
                       disabled={currentPageWriteOffs === writeOffsTotalPages}
+                      className="text-xs sm:text-sm"
                     >
                       التالي
                     </Button>

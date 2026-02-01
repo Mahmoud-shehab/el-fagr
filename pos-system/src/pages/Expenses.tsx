@@ -335,7 +335,9 @@ export default function Expenses() {
           ) : !expenses?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد مصروفات</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -381,6 +383,60 @@ export default function Expenses() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="block md:hidden space-y-3">
+              {expenses.map((expense) => (
+                <Card key={expense.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-mono text-sm font-bold">{expense.expense_number}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(expense.expense_date).toLocaleDateString('ar-EG')}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        expense.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
+                        expense.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {expense.payment_status === 'paid' && 'مدفوع'}
+                        {expense.payment_status === 'pending' && 'معلق'}
+                        {expense.payment_status === 'cancelled' && 'ملغي'}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">الفرع:</span>
+                        <span className="font-medium">{expense.branch?.name_ar}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">النوع:</span>
+                        <span className="font-medium">{expense.category?.name_ar}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">المبلغ:</span>
+                        <span className="font-bold text-primary">{formatCurrency(expense.amount || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">طريقة الدفع:</span>
+                        <span className="font-medium">
+                          {expense.payment_method === 'cash' && 'نقدي'}
+                          {expense.payment_method === 'bank_transfer' && 'تحويل بنكي'}
+                          {expense.payment_method === 'check' && 'شيك'}
+                          {expense.payment_method === 'credit_card' && 'بطاقة'}
+                        </span>
+                      </div>
+                      {expense.notes && (
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground">{expense.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
             </div>
           )}
         </CardContent>
