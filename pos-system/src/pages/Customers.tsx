@@ -428,6 +428,80 @@ export default function Customers() {
               </table>
             </div>
 
+            {/* Mobile Cards */}
+            <div className="block md:hidden space-y-3">
+              {customers?.map((customer: CustomerRow) => (
+                <Card key={customer.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-sm">{customer.name_ar || customer.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{customer.code}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs ${statusLabels[customer.status || 'active'].color}`}>
+                        {statusLabels[customer.status || 'active'].label}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      {customer.branch?.name_ar && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">?????:</span>
+                          <span className="font-medium">{customer.branch.name_ar}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 pt-2 border-t">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{customer.phone}</span>
+                      </div>
+                      {customer.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-xs">{customer.email}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-muted-foreground">??????:</span>
+                        <span className={`font-bold ${customer.current_balance && customer.current_balance > 0 ? 'text-destructive' : ''}`}>
+                          {formatCurrency(customer.current_balance || 0)}
+                        </span>
+                      </div>
+                      {(customer.overdueAmount || 0) > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <AlertTriangle className="h-4 w-4" />
+                            ???????:
+                          </span>
+                          <span className="font-bold text-destructive">
+                            {formatCurrency(customer.overdueAmount || 0)}
+                          </span>
+                        </div>
+                      )}
+                      {(customer.daysOverdue || 0) > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">???? ???????:</span>
+                          <span className="font-bold text-destructive">{customer.daysOverdue} ???</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">?? ????????:</span>
+                        <span className="font-medium">{formatCurrency(customer.credit_limit || 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(customer)}>
+                        <Edit className="h-4 w-4 ml-2" />
+                        ?????
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => deleteMutation.mutate(customer.id)}>
+                        <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+                        ???
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
