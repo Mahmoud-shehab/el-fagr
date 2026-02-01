@@ -206,22 +206,23 @@ export default function Transfers() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">تحويلات المخزون</h1>
-          <p className="text-muted-foreground">إدارة تحويلات المخزون بين الفروع</p>
+          <h1 className="text-xl md:text-2xl font-bold">تحويلات المخزون</h1>
+          <p className="text-sm text-muted-foreground">إدارة تحويلات المخزون بين الفروع</p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
+        <Button onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 ml-2" />
-          تحويل جديد
+          <span className="hidden sm:inline">تحويل جديد</span>
+          <span className="sm:hidden">جديد</span>
         </Button>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-2xl">
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>تحويل مخزون جديد</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">تحويل مخزون جديد</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -296,9 +297,9 @@ export default function Transfers() {
 
       {/* View Transfer Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent onClose={() => setShowViewDialog(false)} className="max-w-2xl">
+        <DialogContent onClose={() => setShowViewDialog(false)} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>تفاصيل التحويل - {selectedTransfer?.transfer_number}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">تفاصيل التحويل - {selectedTransfer?.transfer_number}</DialogTitle>
           </DialogHeader>
           {selectedTransfer && (
             <div className="space-y-4">
@@ -382,58 +383,103 @@ export default function Transfers() {
             <p className="text-center py-8 text-muted-foreground">لا توجد تحويلات</p>
           ) : (
             <>
-              <div className="mb-4 text-sm text-muted-foreground">
+              <div className="mb-4 text-xs sm:text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} تحويل
               </div>
-              <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead><tr className="border-b">
-                  <th className="text-right py-3 px-2">رقم التحويل</th>
-                  <th className="text-right py-3 px-2">التاريخ</th>
-                  <th className="text-right py-3 px-2">من</th>
-                  <th className="text-right py-3 px-2">إلى</th>
-                  <th className="text-right py-3 px-2">عدد الأصناف</th>
-                  <th className="text-right py-3 px-2">القيمة</th>
-                  <th className="text-right py-3 px-2">الحالة</th>
-                  <th className="text-right py-3 px-2">إجراءات</th>
-                </tr></thead>
-                <tbody>
-                  {transfers.map((transfer) => (
-                    <tr key={transfer.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono">{transfer.transfer_number}</td>
-                      <td className="py-3 px-2">{formatDate(transfer.transfer_date || transfer.created_at!)}</td>
-                      <td className="py-3 px-2">{transfer.from_branch?.name_ar}</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
-                          {transfer.to_branch?.name_ar}
+              
+              {/* Mobile Cards */}
+              <div className="block md:hidden space-y-3">
+                {transfers.map((transfer) => (
+                  <Card key={transfer.id} className="p-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-sm font-mono">{transfer.transfer_number}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(transfer.transfer_date || transfer.created_at!)}</p>
                         </div>
-                      </td>
-                      <td className="py-3 px-2">{transfer.total_items || 0}</td>
-                      <td className="py-3 px-2">{formatCurrency(transfer.total_value || 0)}</td>
-                      <td className="py-3 px-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${statusLabels[transfer.status || 'pending'].color}`}>
-                          {statusLabels[transfer.status || 'pending'].label}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2">
-                        <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewTransfer(transfer)}><Eye className="h-4 w-4" /></Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <Button variant="ghost" size="sm" onClick={() => handleViewTransfer(transfer)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">من:</span>
+                          <span className="font-medium">{transfer.from_branch?.name_ar}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <ArrowLeftRight className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">إلى:</span>
+                          <span className="font-medium">{transfer.to_branch?.name_ar}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <span className="text-muted-foreground">الأصناف: </span>
+                            <span className="font-medium">{transfer.total_items || 0}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">القيمة: </span>
+                            <span className="font-bold">{formatCurrency(transfer.total_value || 0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs ${statusLabels[transfer.status || 'pending'].color}`}>
+                        {statusLabels[transfer.status || 'pending'].label}
+                      </span>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="border-b">
+                    <th className="text-right py-3 px-2">رقم التحويل</th>
+                    <th className="text-right py-3 px-2">التاريخ</th>
+                    <th className="text-right py-3 px-2">من</th>
+                    <th className="text-right py-3 px-2">إلى</th>
+                    <th className="text-right py-3 px-2">عدد الأصناف</th>
+                    <th className="text-right py-3 px-2">القيمة</th>
+                    <th className="text-right py-3 px-2">الحالة</th>
+                    <th className="text-right py-3 px-2">إجراءات</th>
+                  </tr></thead>
+                  <tbody>
+                    {transfers.map((transfer) => (
+                      <tr key={transfer.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-2 font-mono">{transfer.transfer_number}</td>
+                        <td className="py-3 px-2">{formatDate(transfer.transfer_date || transfer.created_at!)}</td>
+                        <td className="py-3 px-2">{transfer.from_branch?.name_ar}</td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-2">
+                            <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+                            {transfer.to_branch?.name_ar}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">{transfer.total_items || 0}</td>
+                        <td className="py-3 px-2">{formatCurrency(transfer.total_value || 0)}</td>
+                        <td className="py-3 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${statusLabels[transfer.status || 'pending'].color}`}>
+                            {statusLabels[transfer.status || 'pending'].label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewTransfer(transfer)}><Eye className="h-4 w-4" /></Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>السابق</Button>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between mt-4 pt-4 border-t gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="text-xs sm:text-sm">السابق</Button>
+                <div className="flex items-center gap-1 sm:gap-2">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i
-                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">{pageNum}</Button>
+                    return <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm">{pageNum}</Button>
                   })}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>التالي</Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="text-xs sm:text-sm">التالي</Button>
               </div>
             )}
           </>

@@ -132,19 +132,20 @@ export default function Purchases() {
   }, [searchTerm, taxFilter, paymentFilter])
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">المشتريات</h1>
-        <Button onClick={() => setShowNewPurchase(true)}>
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold">المشتريات</h1>
+        <Button onClick={() => setShowNewPurchase(true)} className="w-full sm:w-auto">
           <Plus className="ml-2 h-4 w-4" />
-          فاتورة شراء جديدة
+          <span className="hidden sm:inline">فاتورة شراء جديدة</span>
+          <span className="sm:hidden">جديد</span>
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="relative flex-1">
               <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="بحث في المشتريات..."
@@ -158,7 +159,7 @@ export default function Purchases() {
             <select
               value={taxFilter}
               onChange={(e) => setTaxFilter(e.target.value as 'all' | 'with_tax' | 'without_tax')}
-              className="px-3 py-2 border rounded-md bg-background"
+              className="px-3 py-2 border rounded-md bg-background text-sm"
               aria-label="فلتر الضريبة"
             >
               <option value="all">الكل (ضريبة)</option>
@@ -170,7 +171,7 @@ export default function Purchases() {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value as 'all' | 'paid' | 'credit')}
-              className="px-3 py-2 border rounded-md bg-background"
+              className="px-3 py-2 border rounded-md bg-background text-sm"
               aria-label="فلتر الدفع"
             >
               <option value="all">الكل (دفع)</option>
@@ -186,80 +187,145 @@ export default function Purchases() {
             </div>
           ) : (
             <>
-              <div className="mb-4 text-sm text-muted-foreground">
+              <div className="mb-4 text-xs sm:text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} فاتورة
               </div>
-              <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-right py-3">رقم الفاتورة</th>
-                  <th className="text-right py-3">التاريخ</th>
-                  <th className="text-right py-3">المورد</th>
-                  <th className="text-right py-3">الفرع</th>
-                  <th className="text-right py-3">الإجمالي</th>
-                  <th className="text-right py-3">المدفوع</th>
-                  <th className="text-right py-3">ضريبة</th>
-                  <th className="text-right py-3">الدفع</th>
-                  <th className="text-center py-3">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+              
+              {/* Mobile Cards */}
+              <div className="block md:hidden space-y-3">
                 {purchases.map((purchase) => (
-                  <tr key={purchase.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3">{purchase.invoice_number}</td>
-                    <td className="py-3">{formatDate(purchase.invoice_date || purchase.created_at || '')}</td>
-                    <td className="py-3">{purchase.supplier?.name_ar || purchase.supplier?.name}</td>
-                    <td className="py-3">{purchase.branch?.name_ar}</td>
-                    <td className="py-3">{formatCurrency(purchase.total_amount || 0)}</td>
-                    <td className="py-3">{formatCurrency(purchase.paid_amount || 0)}</td>
-                    <td className="py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${purchase.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {purchase.has_tax ? 'بضريبة' : 'بدون'}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${purchase.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                        {purchase.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
-                      </span>
-                    </td>
-                    <td className="py-3 text-center">
-                      <div className="flex gap-1 justify-center">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setSelectedPurchase(purchase.id)}
-                          title="عرض التفاصيل"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setPrintPurchaseId(purchase.id)}
-                          title="طباعة"
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
+                  <Card key={purchase.id} className="p-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-sm">{purchase.invoice_number}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(purchase.invoice_date || purchase.created_at || '')}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSelectedPurchase(purchase.id)}
+                            title="عرض"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setPrintPurchaseId(purchase.id)}
+                            title="طباعة"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </td>
-                  </tr>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">المورد: </span>
+                          <span className="font-medium">{purchase.supplier?.name_ar || purchase.supplier?.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">الفرع: </span>
+                          <span className="font-medium">{purchase.branch?.name_ar}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">الإجمالي: </span>
+                          <span className="font-bold">{formatCurrency(purchase.total_amount || 0)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">المدفوع: </span>
+                          <span className="font-medium">{formatCurrency(purchase.paid_amount || 0)}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className={`px-2 py-1 rounded-full text-xs ${purchase.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                          {purchase.has_tax ? 'بضريبة' : 'بدون'}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs ${purchase.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {purchase.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-right py-3 px-2">رقم الفاتورة</th>
+                      <th className="text-right py-3 px-2">التاريخ</th>
+                      <th className="text-right py-3 px-2">المورد</th>
+                      <th className="text-right py-3 px-2">الفرع</th>
+                      <th className="text-right py-3 px-2">الإجمالي</th>
+                      <th className="text-right py-3 px-2">المدفوع</th>
+                      <th className="text-right py-3 px-2">ضريبة</th>
+                      <th className="text-right py-3 px-2">الدفع</th>
+                      <th className="text-center py-3 px-2">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchases.map((purchase) => (
+                      <tr key={purchase.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-2">{purchase.invoice_number}</td>
+                        <td className="py-3 px-2">{formatDate(purchase.invoice_date || purchase.created_at || '')}</td>
+                        <td className="py-3 px-2">{purchase.supplier?.name_ar || purchase.supplier?.name}</td>
+                        <td className="py-3 px-2">{purchase.branch?.name_ar}</td>
+                        <td className="py-3 px-2">{formatCurrency(purchase.total_amount || 0)}</td>
+                        <td className="py-3 px-2">{formatCurrency(purchase.paid_amount || 0)}</td>
+                        <td className="py-3 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${purchase.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {purchase.has_tax ? 'بضريبة' : 'بدون'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${purchase.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {purchase.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <div className="flex gap-1 justify-center">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setSelectedPurchase(purchase.id)}
+                              title="عرض التفاصيل"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setPrintPurchaseId(purchase.id)}
+                              title="طباعة"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between mt-4 pt-4 border-t gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="text-xs sm:text-sm"
                 >
                   السابق
                 </Button>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum: number
                     if (totalPages <= 5) {
@@ -278,7 +344,7 @@ export default function Purchases() {
                         variant={currentPage === pageNum ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setCurrentPage(pageNum)}
-                        className="w-10"
+                        className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm"
                       >
                         {pageNum}
                       </Button>
@@ -291,6 +357,7 @@ export default function Purchases() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="text-xs sm:text-sm"
                 >
                   التالي
                 </Button>
@@ -303,9 +370,9 @@ export default function Purchases() {
 
       {/* New Purchase Dialog */}
       <Dialog open={showNewPurchase} onOpenChange={setShowNewPurchase}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>فاتورة شراء جديدة</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">فاتورة شراء جديدة</DialogTitle>
           </DialogHeader>
           <NewPurchaseForm 
             onClose={() => setShowNewPurchase(false)}
@@ -320,9 +387,9 @@ export default function Purchases() {
       {/* View Purchase Dialog */}
       {selectedPurchase && (
         <Dialog open={!!selectedPurchase} onOpenChange={() => setSelectedPurchase(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-auto">
             <DialogHeader>
-              <DialogTitle>تفاصيل فاتورة الشراء</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">تفاصيل فاتورة الشراء</DialogTitle>
             </DialogHeader>
             <PurchaseDetails 
               purchaseId={selectedPurchase} 

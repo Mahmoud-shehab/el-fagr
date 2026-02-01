@@ -170,7 +170,7 @@ export default function Reports() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <style>{printStyles}</style>
       
       {/* Print Header - Only visible when printing */}
@@ -183,40 +183,42 @@ export default function Reports() {
         )}
       </div>
       
-      <div className="flex items-center justify-between no-print">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div>
-          <h1 className="text-2xl font-bold">التقارير</h1>
-          <p className="text-muted-foreground">عرض وطباعة التقارير</p>
+          <h1 className="text-xl md:text-2xl font-bold">التقارير</h1>
+          <p className="text-sm text-muted-foreground">عرض وطباعة التقارير</p>
         </div>
       </div>
 
-      <div className="flex gap-6">
-        <div className="w-56 space-y-1 no-print">
-          {reports.map((report) => (
-            <button
-              type="button"
-              key={report.key}
-              onClick={() => setActiveReport(report.key as ReportType)}
-              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm transition-colors ${
-                activeReport === report.key ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
-            >
-              <report.icon className="h-4 w-4" />
-              {report.label}
-            </button>
-          ))}
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        <div className="w-full md:w-56">
+          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 no-print">
+            {reports.map((report) => (
+              <button
+                type="button"
+                key={report.key}
+                onClick={() => setActiveReport(report.key as ReportType)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors whitespace-nowrap ${
+                  activeReport === report.key ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                }`}
+              >
+                <report.icon className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{report.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Card>
             <CardHeader className="no-print">
-              <div className="flex items-center justify-between">
-                <CardTitle>{reports.find(r => r.key === activeReport)?.label}</CardTitle>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3">
+                <CardTitle className="text-base sm:text-lg">{reports.find(r => r.key === activeReport)?.label}</CardTitle>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <select
                     value={branchFilter}
                     onChange={(e) => setBranchFilter(e.target.value)}
-                    className="px-3 py-2 border rounded-md bg-background"
+                    className="px-3 py-2 border rounded-md bg-background text-sm"
                   >
                     <option value="all">جميع المنافذ</option>
                     {branches?.map((branch) => (
@@ -225,15 +227,17 @@ export default function Reports() {
                       </option>
                     ))}
                   </select>
-                  <Input type="date" value={dateFrom} onChange={(e: ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)} className="w-40" />
-                  <span>إلى</span>
-                  <Input type="date" value={dateTo} onChange={(e: ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)} className="w-40" />
-                  <Button variant="outline" size="icon" onClick={handlePrint}>
-                    <Printer className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={handleDownload}>
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <Input type="date" value={dateFrom} onChange={(e: ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)} className="flex-1 sm:w-32" />
+                  <span className="hidden sm:inline text-sm">إلى</span>
+                  <Input type="date" value={dateTo} onChange={(e: ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)} className="flex-1 sm:w-32" />
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={handlePrint} className="flex-1 sm:flex-none">
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={handleDownload} className="flex-1 sm:flex-none">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -275,39 +279,39 @@ function SalesReport({ dateFrom, dateTo, branchFilter }: { dateFrom: string; dat
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4 print-stats">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">عدد الفواتير</p>
-          <p className="text-2xl font-bold">{data?.count}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 print-stats">
+        <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">عدد الفواتير</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.count}</p>
         </div>
-        <div className="p-4 bg-green-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المبيعات</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.totalSales || 0)}</p>
+        <div className="p-3 sm:p-4 bg-green-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المبيعات</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.totalSales || 0)}</p>
         </div>
-        <div className="p-4 bg-yellow-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المحصل</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.totalPaid || 0)}</p>
+        <div className="p-3 sm:p-4 bg-yellow-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المحصل</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.totalPaid || 0)}</p>
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full text-xs sm:text-sm">
         <thead>
           <tr className="border-b">
-            <th className="text-right py-2">رقم الفاتورة</th>
-            <th className="text-right py-2">التاريخ</th>
-            <th className="text-right py-2">الإجمالي</th>
-            <th className="text-right py-2">المدفوع</th>
-            <th className="text-right py-2">الحالة</th>
+            <th className="text-right py-2 px-1 sm:px-2">رقم الفاتورة</th>
+            <th className="text-right py-2 px-1 sm:px-2">التاريخ</th>
+            <th className="text-right py-2 px-1 sm:px-2">الإجمالي</th>
+            <th className="text-right py-2 px-1 sm:px-2">المدفوع</th>
+            <th className="text-right py-2 px-1 sm:px-2 hidden sm:table-cell">الحالة</th>
           </tr>
         </thead>
         <tbody>
           {data?.sales.slice(0, 20).map((sale) => (
             <tr key={sale.id} className="border-b">
-              <td className="py-2">{sale.invoice_number}</td>
-              <td className="py-2">{formatDate(sale.invoice_date || sale.created_at)}</td>
-              <td className="py-2">{formatCurrency(sale.total_amount || 0)}</td>
-              <td className="py-2">{formatCurrency(sale.paid_amount || 0)}</td>
-              <td className="py-2">{sale.status}</td>
+              <td className="py-2 px-1 sm:px-2">{sale.invoice_number}</td>
+              <td className="py-2 px-1 sm:px-2">{formatDate(sale.invoice_date || sale.created_at)}</td>
+              <td className="py-2 px-1 sm:px-2">{formatCurrency(sale.total_amount || 0)}</td>
+              <td className="py-2 px-1 sm:px-2">{formatCurrency(sale.paid_amount || 0)}</td>
+              <td className="py-2 px-1 sm:px-2 hidden sm:table-cell">{sale.status}</td>
             </tr>
           ))}
         </tbody>

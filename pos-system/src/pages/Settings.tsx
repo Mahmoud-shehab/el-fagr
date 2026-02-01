@@ -28,29 +28,31 @@ export default function Settings() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">الإعدادات</h1>
-        <p className="text-muted-foreground">إدارة إعدادات النظام</p>
+        <h1 className="text-xl md:text-2xl font-bold">الإعدادات</h1>
+        <p className="text-sm text-muted-foreground">إدارة إعدادات النظام</p>
       </div>
 
-      <div className="flex gap-6">
-        <div className="w-48 space-y-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as SettingsTab)}
-              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm transition-colors ${
-                activeTab === tab.key ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        <div className="w-full md:w-48">
+          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as SettingsTab)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors whitespace-nowrap ${
+                  activeTab === tab.key ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                }`}
+              >
+                <tab.icon className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {activeTab === 'general' && <GeneralSettings />}
           {activeTab === 'branches' && <BranchesSettings />}
           {activeTab === 'users' && <UsersSettings />}

@@ -105,11 +105,11 @@ export default function CustomerStatement() {
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">كشف حساب العملاء</h1>
-          <p className="text-muted-foreground">عرض كشف حساب تفصيلي لكل عميل</p>
+          <h1 className="text-xl md:text-2xl font-bold">كشف حساب العملاء</h1>
+          <p className="text-sm text-muted-foreground">عرض كشف حساب تفصيلي لكل عميل</p>
         </div>
       </div>
 
@@ -171,9 +171,9 @@ export default function CustomerStatement() {
       {selectedCustomer && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>كشف الحساب</CardTitle>
-              <Button onClick={handlePrint} disabled={!transactions?.length}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">كشف الحساب</CardTitle>
+              <Button onClick={handlePrint} disabled={!transactions?.length} className="w-full sm:w-auto">
                 <Printer className="h-4 w-4 ml-2" />
                 طباعة
               </Button>
@@ -201,22 +201,22 @@ export default function CustomerStatement() {
               </div>
 
               {/* Customer Info */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-md no-print">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted rounded-md no-print">
                 <div>
-                  <p className="text-sm text-muted-foreground">اسم العميل</p>
-                  <p className="font-bold">{selectedCustomer.name_ar || selectedCustomer.name}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">اسم العميل</p>
+                  <p className="font-bold text-sm sm:text-base">{selectedCustomer.name_ar || selectedCustomer.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">رقم الهاتف</p>
-                  <p className="font-bold">{selectedCustomer.phone}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">رقم الهاتف</p>
+                  <p className="font-bold text-sm sm:text-base">{selectedCustomer.phone}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">الكود</p>
-                  <p className="font-bold">{selectedCustomer.code}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">الكود</p>
+                  <p className="font-bold text-sm sm:text-base">{selectedCustomer.code}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">الرصيد الحالي</p>
-                  <p className={`font-bold text-lg ${(selectedCustomer.current_balance || 0) > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                  <p className="text-xs sm:text-sm text-muted-foreground">الرصيد الحالي</p>
+                  <p className={`font-bold text-base sm:text-lg ${(selectedCustomer.current_balance || 0) > 0 ? 'text-destructive' : 'text-green-600'}`}>
                     {formatCurrency(selectedCustomer.current_balance || 0)}
                   </p>
                 </div>
@@ -229,35 +229,35 @@ export default function CustomerStatement() {
                 <p className="text-center py-8 text-muted-foreground">لا توجد حركات</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs sm:text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-right py-2 px-2">التاريخ</th>
-                        <th className="text-right py-2 px-2">المرجع</th>
-                        <th className="text-right py-2 px-2">البيان</th>
-                        <th className="text-right py-2 px-2">مدين</th>
-                        <th className="text-right py-2 px-2">دائن</th>
-                        <th className="text-right py-2 px-2">الرصيد</th>
+                        <th className="text-right py-2 px-1 sm:px-2">التاريخ</th>
+                        <th className="text-right py-2 px-1 sm:px-2">المرجع</th>
+                        <th className="text-right py-2 px-1 sm:px-2 hidden sm:table-cell">البيان</th>
+                        <th className="text-right py-2 px-1 sm:px-2">مدين</th>
+                        <th className="text-right py-2 px-1 sm:px-2">دائن</th>
+                        <th className="text-right py-2 px-1 sm:px-2">الرصيد</th>
                       </tr>
                     </thead>
                     <tbody>
                       {transactions.map((transaction, index) => (
                         <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-1 sm:px-2">
                             <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(transaction.date).toLocaleDateString('ar-EG')}
+                              <Calendar className="h-3 w-3 hidden sm:inline" />
+                              <span className="text-xs">{new Date(transaction.date).toLocaleDateString('ar-EG', { month: 'numeric', day: 'numeric' })}</span>
                             </div>
                           </td>
-                          <td className="py-2 px-2 font-mono text-xs">{transaction.reference}</td>
-                          <td className="py-2 px-2">{transaction.description}</td>
-                          <td className="py-2 px-2 text-destructive">
+                          <td className="py-2 px-1 sm:px-2 font-mono text-xs">{transaction.reference}</td>
+                          <td className="py-2 px-1 sm:px-2 hidden sm:table-cell">{transaction.description}</td>
+                          <td className="py-2 px-1 sm:px-2 text-destructive text-xs sm:text-sm">
                             {transaction.debit > 0 ? formatCurrency(transaction.debit) : '-'}
                           </td>
-                          <td className="py-2 px-2 text-green-600">
+                          <td className="py-2 px-1 sm:px-2 text-green-600 text-xs sm:text-sm">
                             {transaction.credit > 0 ? formatCurrency(transaction.credit) : '-'}
                           </td>
-                          <td className="py-2 px-2 font-bold">
+                          <td className="py-2 px-1 sm:px-2 font-bold text-xs sm:text-sm">
                             <span className={transaction.balance > 0 ? 'text-destructive' : 'text-green-600'}>
                               {formatCurrency(transaction.balance)}
                             </span>
@@ -267,14 +267,17 @@ export default function CustomerStatement() {
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold">
-                        <td colSpan={3} className="py-3 px-2 text-right">الإجمالي</td>
-                        <td className="py-3 px-2 text-destructive">
+                        <td colSpan={2} className="py-3 px-1 sm:px-2 text-right text-xs sm:text-sm">الإجمالي</td>
+                        <td className="py-3 px-1 sm:px-2 text-destructive text-xs sm:text-sm hidden sm:table-cell">
                           {formatCurrency(transactions.reduce((sum, t) => sum + (t.debit || 0), 0))}
                         </td>
-                        <td className="py-3 px-2 text-green-600">
+                        <td className="py-3 px-1 sm:px-2 text-destructive text-xs sm:text-sm sm:hidden">
+                          {formatCurrency(transactions.reduce((sum, t) => sum + (t.debit || 0), 0))}
+                        </td>
+                        <td className="py-3 px-1 sm:px-2 text-green-600 text-xs sm:text-sm">
                           {formatCurrency(transactions.reduce((sum, t) => sum + (t.credit || 0), 0))}
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-1 sm:px-2 text-xs sm:text-sm">
                           <span className={transactions[transactions.length - 1]?.balance > 0 ? 'text-destructive' : 'text-green-600'}>
                             {formatCurrency(transactions[transactions.length - 1]?.balance || 0)}
                           </span>
