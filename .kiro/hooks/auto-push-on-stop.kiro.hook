@@ -8,6 +8,6 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "git add . && git commit -m \"auto: Save progress\" && git push origin main"
+    "command": "git add . && git diff-index --quiet HEAD || git commit -m \"auto: Save progress\" && git push origin main"
   }
 }
