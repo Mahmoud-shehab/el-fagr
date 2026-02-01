@@ -343,42 +343,76 @@ function PurchasesReport({ dateFrom, dateTo, branchFilter }: { dateFrom: string;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">عدد الفواتير</p>
-          <p className="text-2xl font-bold">{data?.count}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 print-stats">
+        <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">عدد الفواتير</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.count}</p>
         </div>
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المشتريات</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.total || 0)}</p>
+        <div className="p-3 sm:p-4 bg-red-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المشتريات</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.total || 0)}</p>
         </div>
-        <div className="p-4 bg-green-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المدفوع</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.paid || 0)}</p>
+        <div className="p-3 sm:p-4 bg-green-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المدفوع</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.paid || 0)}</p>
         </div>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-right py-2">رقم الفاتورة</th>
-            <th className="text-right py-2">المورد</th>
-            <th className="text-right py-2">التاريخ</th>
-            <th className="text-right py-2">الإجمالي</th>
-            <th className="text-right py-2">المدفوع</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.purchases.slice(0, 20).map((p) => (
-            <tr key={p.id} className="border-b">
-              <td className="py-2">{p.invoice_number}</td>
-              <td className="py-2">{p.supplier?.name_ar}</td>
-              <td className="py-2">{formatDate(p.invoice_date || p.created_at)}</td>
-              <td className="py-2">{formatCurrency(p.total_amount || 0)}</td>
-              <td className="py-2">{formatCurrency(p.paid_amount || 0)}</td>
+      
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-xs sm:text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-right py-2 px-1 sm:px-2">رقم الفاتورة</th>
+              <th className="text-right py-2 px-1 sm:px-2">المورد</th>
+              <th className="text-right py-2 px-1 sm:px-2">التاريخ</th>
+              <th className="text-right py-2 px-1 sm:px-2">الإجمالي</th>
+              <th className="text-right py-2 px-1 sm:px-2">المدفوع</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data?.purchases.slice(0, 20).map((p) => (
+              <tr key={p.id} className="border-b">
+                <td className="py-2 px-1 sm:px-2">{p.invoice_number}</td>
+                <td className="py-2 px-1 sm:px-2">{p.supplier?.name_ar}</td>
+                <td className="py-2 px-1 sm:px-2">{formatDate(p.invoice_date || p.created_at)}</td>
+                <td className="py-2 px-1 sm:px-2">{formatCurrency(p.total_amount || 0)}</td>
+                <td className="py-2 px-1 sm:px-2">{formatCurrency(p.paid_amount || 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="block md:hidden space-y-3">
+        {data?.purchases.slice(0, 20).map((p) => (
+          <Card key={p.id} className="p-3">
+            <div className="space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-mono text-sm font-bold">{p.invoice_number}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(p.invoice_date || p.created_at)}</p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">المورد:</span>
+                  <span className="font-medium">{p.supplier?.name_ar}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الإجمالي:</span>
+                  <span className="font-bold text-primary">{formatCurrency(p.total_amount || 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">المدفوع:</span>
+                  <span className="font-medium">{formatCurrency(p.paid_amount || 0)}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
@@ -408,42 +442,81 @@ function InventoryReport({ branchFilter }: { branchFilter: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي الأصناف</p>
-          <p className="text-2xl font-bold">{data?.inventory.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 print-stats">
+        <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي الأصناف</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.inventory.length}</p>
         </div>
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">أصناف تحت الحد الأدنى</p>
-          <p className="text-2xl font-bold">{data?.lowStock.length}</p>
+        <div className="p-3 sm:p-4 bg-red-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">أصناف تحت الحد الأدنى</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.lowStock.length}</p>
         </div>
-        <div className="p-4 bg-green-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">قيمة المخزون</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.totalValue || 0)}</p>
+        <div className="p-3 sm:p-4 bg-green-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">قيمة المخزون</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.totalValue || 0)}</p>
         </div>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-right py-2">كود المنتج</th>
-            <th className="text-right py-2">اسم المنتج</th>
-            <th className="text-right py-2">الفرع</th>
-            <th className="text-right py-2">الكمية</th>
-            <th className="text-right py-2">الحد الأدنى</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.inventory.map((inv) => (
-            <tr key={inv.id} className={`border-b ${(inv.quantity || 0) <= (inv.min_quantity || 10) ? 'bg-red-50' : ''}`}>
-              <td className="py-2">{inv.product?.code}</td>
-              <td className="py-2">{inv.product?.name_ar}</td>
-              <td className="py-2">{inv.branch?.name_ar}</td>
-              <td className="py-2">{inv.quantity || 0}</td>
-              <td className="py-2">{inv.min_quantity || 10}</td>
+      
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-xs sm:text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-right py-2 px-1 sm:px-2">كود المنتج</th>
+              <th className="text-right py-2 px-1 sm:px-2">اسم المنتج</th>
+              <th className="text-right py-2 px-1 sm:px-2">الفرع</th>
+              <th className="text-right py-2 px-1 sm:px-2">الكمية</th>
+              <th className="text-right py-2 px-1 sm:px-2">الحد الأدنى</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data?.inventory.map((inv) => (
+              <tr key={inv.id} className={`border-b ${(inv.quantity || 0) <= (inv.min_quantity || 10) ? 'bg-red-50' : ''}`}>
+                <td className="py-2 px-1 sm:px-2">{inv.product?.code}</td>
+                <td className="py-2 px-1 sm:px-2">{inv.product?.name_ar}</td>
+                <td className="py-2 px-1 sm:px-2">{inv.branch?.name_ar}</td>
+                <td className="py-2 px-1 sm:px-2">{inv.quantity || 0}</td>
+                <td className="py-2 px-1 sm:px-2">{inv.min_quantity || 10}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="block md:hidden space-y-3">
+        {data?.inventory.map((inv) => (
+          <Card key={inv.id} className={`p-3 ${(inv.quantity || 0) <= (inv.min_quantity || 10) ? 'border-red-300 bg-red-50' : ''}`}>
+            <div className="space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-medium text-sm">{inv.product?.name_ar}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{inv.product?.code}</p>
+                </div>
+                {(inv.quantity || 0) <= (inv.min_quantity || 10) && (
+                  <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">تحت الحد</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الفرع:</span>
+                  <span className="font-medium">{inv.branch?.name_ar}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الكمية:</span>
+                  <span className={`font-bold ${(inv.quantity || 0) <= (inv.min_quantity || 10) ? 'text-red-600' : 'text-primary'}`}>
+                    {inv.quantity || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الحد الأدنى:</span>
+                  <span className="font-medium">{inv.min_quantity || 10}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
@@ -474,42 +547,81 @@ function CustomersReport({ branchFilter }: { branchFilter: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي العملاء</p>
-          <p className="text-2xl font-bold">{data?.customers.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 print-stats">
+        <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي العملاء</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.customers.length}</p>
         </div>
-        <div className="p-4 bg-yellow-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">عملاء لديهم رصيد</p>
-          <p className="text-2xl font-bold">{data?.withBalance}</p>
+        <div className="p-3 sm:p-4 bg-yellow-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">عملاء لديهم رصيد</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.withBalance}</p>
         </div>
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المديونية</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.totalBalance || 0)}</p>
+        <div className="p-3 sm:p-4 bg-red-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المديونية</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.totalBalance || 0)}</p>
         </div>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-right py-2">الكود</th>
-            <th className="text-right py-2">الاسم</th>
-            <th className="text-right py-2">الهاتف</th>
-            <th className="text-right py-2">الرصيد</th>
-            <th className="text-right py-2">حد الائتمان</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.customers.map((c) => (
-            <tr key={c.id} className={`border-b ${(c.current_balance || 0) > (c.credit_limit || 0) ? 'bg-red-50' : ''}`}>
-              <td className="py-2">{c.code}</td>
-              <td className="py-2">{c.name_ar || c.name}</td>
-              <td className="py-2">{c.phone}</td>
-              <td className="py-2">{formatCurrency(c.current_balance || 0)}</td>
-              <td className="py-2">{formatCurrency(c.credit_limit || 0)}</td>
+      
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-xs sm:text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+              <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+              <th className="text-right py-2 px-1 sm:px-2">الهاتف</th>
+              <th className="text-right py-2 px-1 sm:px-2">الرصيد</th>
+              <th className="text-right py-2 px-1 sm:px-2">حد الائتمان</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data?.customers.map((c) => (
+              <tr key={c.id} className={`border-b ${(c.current_balance || 0) > (c.credit_limit || 0) ? 'bg-red-50' : ''}`}>
+                <td className="py-2 px-1 sm:px-2">{c.code}</td>
+                <td className="py-2 px-1 sm:px-2">{c.name_ar || c.name}</td>
+                <td className="py-2 px-1 sm:px-2">{c.phone}</td>
+                <td className="py-2 px-1 sm:px-2">{formatCurrency(c.current_balance || 0)}</td>
+                <td className="py-2 px-1 sm:px-2">{formatCurrency(c.credit_limit || 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="block md:hidden space-y-3">
+        {data?.customers.map((c) => (
+          <Card key={c.id} className={`p-3 ${(c.current_balance || 0) > (c.credit_limit || 0) ? 'border-red-300 bg-red-50' : ''}`}>
+            <div className="space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-medium text-sm">{c.name_ar || c.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{c.code}</p>
+                </div>
+                {(c.current_balance || 0) > (c.credit_limit || 0) && (
+                  <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">تجاوز الحد</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الهاتف:</span>
+                  <span className="font-medium">{c.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الرصيد:</span>
+                  <span className={`font-bold ${(c.current_balance || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {formatCurrency(c.current_balance || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">حد الائتمان:</span>
+                  <span className="font-medium">{formatCurrency(c.credit_limit || 0)}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
@@ -535,36 +647,68 @@ function SuppliersReport() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي الموردين</p>
-          <p className="text-2xl font-bold">{data?.suppliers.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 print-stats">
+        <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي الموردين</p>
+          <p className="text-xl sm:text-2xl font-bold">{data?.suppliers.length}</p>
         </div>
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المستحقات</p>
-          <p className="text-2xl font-bold">{formatCurrency(data?.totalBalance || 0)}</p>
+        <div className="p-3 sm:p-4 bg-red-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المستحقات</p>
+          <p className="text-xl sm:text-2xl font-bold">{formatCurrency(data?.totalBalance || 0)}</p>
         </div>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-right py-2">الكود</th>
-            <th className="text-right py-2">الاسم</th>
-            <th className="text-right py-2">الهاتف</th>
-            <th className="text-right py-2">الرصيد المستحق</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.suppliers.map((s) => (
-            <tr key={s.id} className="border-b">
-              <td className="py-2">{s.code}</td>
-              <td className="py-2">{s.name_ar || s.name}</td>
-              <td className="py-2">{s.phone}</td>
-              <td className="py-2">{formatCurrency(s.current_balance || 0)}</td>
+      
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-xs sm:text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+              <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+              <th className="text-right py-2 px-1 sm:px-2">الهاتف</th>
+              <th className="text-right py-2 px-1 sm:px-2">الرصيد المستحق</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data?.suppliers.map((s) => (
+              <tr key={s.id} className="border-b">
+                <td className="py-2 px-1 sm:px-2">{s.code}</td>
+                <td className="py-2 px-1 sm:px-2">{s.name_ar || s.name}</td>
+                <td className="py-2 px-1 sm:px-2">{s.phone}</td>
+                <td className="py-2 px-1 sm:px-2">{formatCurrency(s.current_balance || 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="block md:hidden space-y-3">
+        {data?.suppliers.map((s) => (
+          <Card key={s.id} className="p-3">
+            <div className="space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-medium text-sm">{s.name_ar || s.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{s.code}</p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الهاتف:</span>
+                  <span className="font-medium">{s.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الرصيد المستحق:</span>
+                  <span className={`font-bold ${(s.current_balance || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {formatCurrency(s.current_balance || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
@@ -606,22 +750,22 @@ function ProfitReport({ dateFrom, dateTo, branchFilter }: { dateFrom: string; da
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-6 bg-green-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المبيعات</p>
-          <p className="text-3xl font-bold text-green-600">{formatCurrency(data?.totalSales || 0)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 print-stats">
+        <div className="p-4 sm:p-6 bg-green-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المبيعات</p>
+          <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatCurrency(data?.totalSales || 0)}</p>
         </div>
-        <div className="p-6 bg-red-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي المشتريات</p>
-          <p className="text-3xl font-bold text-red-600">{formatCurrency(data?.totalPurchases || 0)}</p>
+        <div className="p-4 sm:p-6 bg-red-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي المشتريات</p>
+          <p className="text-2xl sm:text-3xl font-bold text-red-600">{formatCurrency(data?.totalPurchases || 0)}</p>
         </div>
-        <div className="p-6 bg-yellow-50 rounded-lg">
-          <p className="text-sm text-muted-foreground">إجمالي الخصومات</p>
-          <p className="text-3xl font-bold text-yellow-600">{formatCurrency(data?.totalDiscounts || 0)}</p>
+        <div className="p-4 sm:p-6 bg-yellow-50 rounded-lg">
+          <p className="text-xs sm:text-sm text-muted-foreground">إجمالي الخصومات</p>
+          <p className="text-2xl sm:text-3xl font-bold text-yellow-600">{formatCurrency(data?.totalDiscounts || 0)}</p>
         </div>
-        <div className={`p-6 rounded-lg ${(data?.grossProfit || 0) >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-          <p className="text-sm text-muted-foreground">صافي الربح</p>
-          <p className={`text-3xl font-bold ${(data?.grossProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+        <div className={`p-4 sm:p-6 rounded-lg ${(data?.grossProfit || 0) >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+          <p className="text-xs sm:text-sm text-muted-foreground">صافي الربح</p>
+          <p className={`text-2xl sm:text-3xl font-bold ${(data?.grossProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
             {formatCurrency(data?.grossProfit || 0)}
           </p>
         </div>
