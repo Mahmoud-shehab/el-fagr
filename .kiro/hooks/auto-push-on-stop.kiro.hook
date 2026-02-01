@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Auto Push on Task Complete",
+  "description": "Automatically commits and pushes all changes to GitHub when agent stops",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "git add . && git diff-index --quiet HEAD || git commit -m \"auto: Save progress\" && git push origin main"
+  }
+}
