@@ -40,10 +40,7 @@ export default function Sidebar() {
         <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-40 p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-10 h-10 rounded-lg object-contain" />
-            <div>
-              <h1 className="text-sm font-bold text-primary">الفجر الجديدة</h1>
-              <p className="text-xs text-muted-foreground">{user?.branch?.name_ar || 'المخزن الرئيسي'}</p>
-            </div>
+            <h1 className="text-base font-bold text-primary">الفجر الجديدة</h1>
           </div>
           <button
             onClick={() => setIsOpen(true)}
