@@ -35,14 +35,23 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button - Hidden when sidebar is open */}
+      {/* Mobile Header with Logo - Only when sidebar is closed */}
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-lg border"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
+        <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-40 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-10 h-10 rounded-lg object-contain" />
+            <div>
+              <h1 className="text-sm font-bold text-primary">الفجر الجديدة</h1>
+              <p className="text-xs text-muted-foreground">{user?.branch?.name_ar || 'المخزن الرئيسي'}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsOpen(true)}
+            className="p-2 hover:bg-muted rounded-md"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
       )}
 
       {/* Overlay */}
