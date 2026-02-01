@@ -150,10 +150,10 @@ export default function Products() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">المنتجات</h1>
+          <h1 className="text-xl md:text-2xl font-bold">المنتجات</h1>
           <p className="text-sm text-muted-foreground">إدارة المنتجات والأصناف</p>
         </div>
         <Button onClick={openNew} className="w-full sm:w-auto">
@@ -163,9 +163,9 @@ export default function Products() {
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">{editingId ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -247,31 +247,32 @@ export default function Products() {
               <div className="mb-4 text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} منتج
               </div>
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle">
-              <table className="w-full min-w-[700px]">
+              
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">الكود</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">الاسم</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden md:table-cell">التصنيف</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">الماركة</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">سعر الشراء</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">سعر البيع</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden sm:table-cell">الحالة</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">إجراءات</th>
+                    <th className="text-right py-3 px-2">الكود</th>
+                    <th className="text-right py-3 px-2">الاسم</th>
+                    <th className="text-right py-3 px-2">التصنيف</th>
+                    <th className="text-right py-3 px-2">الماركة</th>
+                    <th className="text-right py-3 px-2">سعر الشراء</th>
+                    <th className="text-right py-3 px-2">سعر البيع</th>
+                    <th className="text-right py-3 px-2">الحالة</th>
+                    <th className="text-right py-3 px-2">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((product) => (
                     <tr key={product.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono text-xs sm:text-sm">{product.code}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm">{product.name_ar}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm hidden md:table-cell">{product.category?.name_ar || '-'}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">{product.brand?.name || '-'}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm">{formatCurrency(product.purchase_price || 0)}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm">{formatCurrency(product.selling_price || 0)}</td>
-                      <td className="py-3 px-2 hidden sm:table-cell">
+                      <td className="py-3 px-2 font-mono">{product.code}</td>
+                      <td className="py-3 px-2">{product.name_ar}</td>
+                      <td className="py-3 px-2">{product.category?.name_ar || '-'}</td>
+                      <td className="py-3 px-2">{product.brand?.name || '-'}</td>
+                      <td className="py-3 px-2">{formatCurrency(product.purchase_price || 0)}</td>
+                      <td className="py-3 px-2">{formatCurrency(product.selling_price || 0)}</td>
+                      <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                         }`}>
@@ -279,12 +280,12 @@ export default function Products() {
                         </span>
                       </td>
                       <td className="py-3 px-2">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(product)} title="تعديل" className="h-8 w-8">
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(product)} title="تعديل">
+                            <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product.id)} title="حذف" className="h-8 w-8">
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product.id)} title="حذف">
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </td>
@@ -293,6 +294,75 @@ export default function Products() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards */}
+            <div className="block md:hidden space-y-3">
+              {products.map((product) => (
+                <Card key={product.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-sm">{product.name_ar}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{product.code}</p>
+                        {product.barcode && (
+                          <p className="text-xs text-muted-foreground">باركود: {product.barcode}</p>
+                        )}
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {product.status === 'active' ? 'نشط' : 'غير نشط'}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">التصنيف:</span>
+                        <span className="font-medium">{product.category?.name_ar || '-'}</span>
+                      </div>
+                      {product.brand?.name && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">الماركة:</span>
+                          <span className="font-medium">{product.brand.name}</span>
+                        </div>
+                      )}
+                      {product.unit?.name_ar && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">الوحدة:</span>
+                          <span className="font-medium">{product.unit.name_ar}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-muted-foreground">سعر الشراء:</span>
+                        <span className="font-bold text-blue-600">{formatCurrency(product.purchase_price || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">سعر البيع:</span>
+                        <span className="font-bold text-green-600">{formatCurrency(product.selling_price || 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => openEdit(product)}
+                      >
+                        <Edit className="h-4 w-4 ml-2" />
+                        تعديل
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => deleteMutation.mutate(product.id)}
+                      >
+                        <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+                        حذف
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">

@@ -366,74 +366,147 @@ export default function StockCount() {
           ) : !stockCounts?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد عمليات جرد</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-right py-3 px-2">رقم الجرد</th>
-                    <th className="text-right py-3 px-2">التاريخ</th>
-                    <th className="text-right py-3 px-2">الفرع</th>
-                    <th className="text-right py-3 px-2">عدد المنتجات</th>
-                    <th className="text-right py-3 px-2">منتجات بفروقات</th>
-                    <th className="text-right py-3 px-2">الحالة</th>
-                    <th className="text-right py-3 px-2">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockCounts.map((count) => (
-                    <tr key={count.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono text-sm">{count.count_number}</td>
-                      <td className="py-3 px-2">
-                        {new Date(count.count_date || count.created_at).toLocaleDateString('ar-EG')}
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-1">
-                          <Building2 className="h-3 w-3" />
-                          {count.branch?.name_ar}
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-right py-3 px-2">رقم الجرد</th>
+                      <th className="text-right py-3 px-2">التاريخ</th>
+                      <th className="text-right py-3 px-2">الفرع</th>
+                      <th className="text-right py-3 px-2">عدد المنتجات</th>
+                      <th className="text-right py-3 px-2">منتجات بفروقات</th>
+                      <th className="text-right py-3 px-2">الحالة</th>
+                      <th className="text-right py-3 px-2">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockCounts.map((count) => (
+                      <tr key={count.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-2 font-mono text-sm">{count.count_number}</td>
+                        <td className="py-3 px-2">
+                          {new Date(count.count_date || count.created_at).toLocaleDateString('ar-EG')}
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {count.branch?.name_ar}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2 text-center">{count.total_items || 0}</td>
+                        <td className="py-3 px-2 text-center">
+                          {count.variance_items > 0 ? (
+                            <span className="text-destructive font-bold">{count.variance_items}</span>
+                          ) : (
+                            <span className="text-green-600">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-2">
+                          {count.status === 'approved' ? (
+                            <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 flex items-center gap-1 w-fit">
+                              <CheckCircle className="h-3 w-3" />
+                              معتمد
+                            </span>
+                          ) : count.status === 'rejected' ? (
+                            <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+                              <XCircle className="h-3 w-3" />
+                              مرفوض
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700 flex items-center gap-1 w-fit">
+                              <AlertTriangle className="h-3 w-3" />
+                              معلق
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-2">
+                          {count.status === 'pending' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => approveCountMutation.mutate(count.id)}
+                              disabled={approveCountMutation.isPending}
+                            >
+                              اعتماد
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="block md:hidden space-y-3">
+                {stockCounts.map((count) => (
+                  <Card key={count.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-mono text-sm font-bold">{count.count_number}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(count.count_date || count.created_at).toLocaleDateString('ar-EG')}
+                          </p>
                         </div>
-                      </td>
-                      <td className="py-3 px-2 text-center">{count.total_items || 0}</td>
-                      <td className="py-3 px-2 text-center">
-                        {count.variance_items > 0 ? (
-                          <span className="text-destructive font-bold">{count.variance_items}</span>
-                        ) : (
-                          <span className="text-green-600">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-2">
                         {count.status === 'approved' ? (
-                          <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 flex items-center gap-1 w-fit">
+                          <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 flex items-center gap-1">
                             <CheckCircle className="h-3 w-3" />
                             معتمد
                           </span>
                         ) : count.status === 'rejected' ? (
-                          <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+                          <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 flex items-center gap-1">
                             <XCircle className="h-3 w-3" />
                             مرفوض
                           </span>
                         ) : (
-                          <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700 flex items-center gap-1 w-fit">
+                          <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700 flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             معلق
                           </span>
                         )}
-                      </td>
-                      <td className="py-3 px-2">
-                        {count.status === 'pending' && (
-                          <Button 
-                            size="sm"
-                            onClick={() => approveCountMutation.mutate(count.id)}
-                            disabled={approveCountMutation.isPending}
-                          >
-                            اعتماد
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            الفرع:
+                          </span>
+                          <span className="font-medium">{count.branch?.name_ar}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Package className="h-3 w-3" />
+                            عدد المنتجات:
+                          </span>
+                          <span className="font-medium">{count.total_items || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">منتجات بفروقات:</span>
+                          {count.variance_items > 0 ? (
+                            <span className="text-destructive font-bold">{count.variance_items}</span>
+                          ) : (
+                            <span className="text-green-600 font-medium">لا يوجد</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {count.status === 'pending' && (
+                        <Button 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => approveCountMutation.mutate(count.id)}
+                          disabled={approveCountMutation.isPending}
+                        >
+                          اعتماد
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

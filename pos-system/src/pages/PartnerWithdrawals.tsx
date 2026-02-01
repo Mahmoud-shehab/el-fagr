@@ -199,60 +199,117 @@ export default function PartnerWithdrawals() {
           ) : !withdrawals?.length ? (
             <p className="text-center py-8 text-muted-foreground">لا توجد سحوبات</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-right py-3 px-2">رقم السحب</th>
-                    <th className="text-right py-3 px-2">التاريخ</th>
-                    <th className="text-right py-3 px-2">الفرع</th>
-                    <th className="text-right py-3 px-2">الشريك</th>
-                    <th className="text-right py-3 px-2">المبلغ</th>
-                    <th className="text-right py-3 px-2">الرصيد قبل</th>
-                    <th className="text-right py-3 px-2">الرصيد بعد</th>
-                    <th className="text-right py-3 px-2">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {withdrawals.map((withdrawal) => (
-                    <tr key={withdrawal.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono text-sm">{withdrawal.withdrawal_number}</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(withdrawal.withdrawal_date || withdrawal.created_at).toLocaleDateString('ar-EG')}
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-right py-3 px-2">رقم السحب</th>
+                      <th className="text-right py-3 px-2">التاريخ</th>
+                      <th className="text-right py-3 px-2">الفرع</th>
+                      <th className="text-right py-3 px-2">الشريك</th>
+                      <th className="text-right py-3 px-2">المبلغ</th>
+                      <th className="text-right py-3 px-2">الرصيد قبل</th>
+                      <th className="text-right py-3 px-2">الرصيد بعد</th>
+                      <th className="text-right py-3 px-2">الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withdrawals.map((withdrawal) => (
+                      <tr key={withdrawal.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-2 font-mono text-sm">{withdrawal.withdrawal_number}</td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(withdrawal.withdrawal_date || withdrawal.created_at).toLocaleDateString('ar-EG')}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(withdrawal.withdrawal_date || withdrawal.created_at).toLocaleTimeString('ar-EG')}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {withdrawal.branch?.name_ar}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {withdrawal.partner_name}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="font-bold text-destructive">{formatCurrency(withdrawal.amount || 0)}</span>
+                        </td>
+                        <td className="py-3 px-2">{formatCurrency(withdrawal.balance_before || 0)}</td>
+                        <td className="py-3 px-2">{formatCurrency(withdrawal.balance_after || 0)}</td>
+                        <td className="py-3 px-2">
+                          <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                            {withdrawal.status === 'approved' ? 'معتمد' : 'معلق'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="block md:hidden space-y-3">
+                {withdrawals.map((withdrawal) => (
+                  <Card key={withdrawal.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-mono text-sm font-bold">{withdrawal.withdrawal_number}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(withdrawal.withdrawal_date || withdrawal.created_at).toLocaleDateString('ar-EG')}
+                          </p>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(withdrawal.withdrawal_date || withdrawal.created_at).toLocaleTimeString('ar-EG')}
-                        </div>
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-1">
-                          <Building2 className="h-3 w-3" />
-                          {withdrawal.branch?.name_ar}
-                        </div>
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {withdrawal.partner_name}
-                        </div>
-                      </td>
-                      <td className="py-3 px-2">
-                        <span className="font-bold text-destructive">{formatCurrency(withdrawal.amount || 0)}</span>
-                      </td>
-                      <td className="py-3 px-2">{formatCurrency(withdrawal.balance_before || 0)}</td>
-                      <td className="py-3 px-2">{formatCurrency(withdrawal.balance_after || 0)}</td>
-                      <td className="py-3 px-2">
                         <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
                           {withdrawal.status === 'approved' ? 'معتمد' : 'معلق'}
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            الفرع:
+                          </span>
+                          <span className="font-medium">{withdrawal.branch?.name_ar}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            الشريك:
+                          </span>
+                          <span className="font-medium">{withdrawal.partner_name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            المبلغ:
+                          </span>
+                          <span className="font-bold text-destructive">{formatCurrency(withdrawal.amount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">الرصيد قبل:</span>
+                          <span className="font-medium">{formatCurrency(withdrawal.balance_before || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">الرصيد بعد:</span>
+                          <span className="font-medium">{formatCurrency(withdrawal.balance_after || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
