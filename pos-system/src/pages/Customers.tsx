@@ -449,7 +449,7 @@ export default function Customers() {
                     <div className="space-y-1 text-sm">
                       {customer.branch?.name_ar && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">?????:</span>
+                          <span className="text-muted-foreground">الفرع:</span>
                           <span className="font-medium">{customer.branch.name_ar}</span>
                         </div>
                       )}
@@ -464,7 +464,7 @@ export default function Customers() {
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t">
-                        <span className="text-muted-foreground">??????:</span>
+                        <span className="text-muted-foreground">الرصيد:</span>
                         <span className={`font-bold ${customer.current_balance && customer.current_balance > 0 ? 'text-destructive' : ''}`}>
                           {formatCurrency(customer.current_balance || 0)}
                         </span>
@@ -473,7 +473,7 @@ export default function Customers() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground flex items-center gap-1">
                             <AlertTriangle className="h-4 w-4" />
-                            ???????:
+                            المستحق:
                           </span>
                           <span className="font-bold text-destructive">
                             {formatCurrency(customer.overdueAmount || 0)}
@@ -482,23 +482,23 @@ export default function Customers() {
                       )}
                       {(customer.daysOverdue || 0) > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">???? ???????:</span>
-                          <span className="font-bold text-destructive">{customer.daysOverdue} ???</span>
+                          <span className="text-muted-foreground">أيام التأخير:</span>
+                          <span className="font-bold text-destructive">{customer.daysOverdue} يوم</span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">?? ????????:</span>
+                        <span className="text-muted-foreground">حد الائتمان:</span>
                         <span className="font-medium">{formatCurrency(customer.credit_limit || 0)}</span>
                       </div>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(customer)}>
                         <Edit className="h-4 w-4 ml-2" />
-                        ?????
+                        تعديل
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => deleteMutation.mutate(customer.id)}>
                         <Trash2 className="h-4 w-4 ml-2 text-destructive" />
-                        ???
+                        حذف
                       </Button>
                     </div>
                   </div>
