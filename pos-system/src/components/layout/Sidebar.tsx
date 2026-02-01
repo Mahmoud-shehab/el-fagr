@@ -3,9 +3,10 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Package, Users, ShoppingCart, Truck, RotateCcw,
   ArrowLeftRight, ClipboardList, AlertTriangle, Settings, LogOut, Monitor, FileBarChart,
-  DollarSign, FileText, PackageCheck, Receipt
+  DollarSign, FileText, PackageCheck, Receipt, Menu, X
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useState } from 'react'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/dashboard' },
@@ -30,9 +31,31 @@ const menuItems = [
 export default function Sidebar() {
   const location = useLocation()
   const { user, logout } = useAuthStore()
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <aside className="w-64 bg-white border-l h-screen flex flex-col">
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-lg border"
+      >
+        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </button>
+
+      {/* Overlay */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "w-64 bg-white border-l h-screen flex flex-col fixed lg:static z-40 transition-transform duration-300",
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
       <div className="p-4 border-b">
         <div className="flex items-center gap-3">
           <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-12 h-12 rounded-lg object-contain" />
@@ -48,6 +71,7 @@ export default function Sidebar() {
           <Link
             key={item.path}
             to={item.path}
+            onClick={() => setIsOpen(false)}
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
               location.pathname === item.path
@@ -81,5 +105,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   )
 }

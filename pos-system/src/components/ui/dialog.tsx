@@ -17,7 +17,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         className="fixed inset-0 bg-black/50" 
         onClick={() => onOpenChange(false)}
       />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
+      <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4">
         {children}
       </div>
     </div>
@@ -34,18 +34,18 @@ export function DialogContent({ children, className, onClose }: DialogContentPro
   return (
     <div className={cn(
       'relative bg-background rounded-lg shadow-lg max-h-[90vh] overflow-auto',
-      'w-full max-w-lg p-6',
+      'w-full max-w-lg p-4 sm:p-6',
       className
     )}>
       {onClose && (
         <button
           type="button"
           onClick={onClose}
-          className="absolute left-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+          className="absolute left-2 sm:left-4 top-2 sm:top-4 rounded-sm opacity-70 hover:opacity-100 z-10"
           title="إغلاق"
           aria-label="إغلاق"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       )}
       {children}
@@ -58,7 +58,7 @@ export function DialogHeader({ children, className }: { children: React.ReactNod
 }
 
 export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={cn('text-lg font-semibold', className)}>{children}</h2>
+  return <h2 className={cn('text-base sm:text-lg font-semibold pr-8', className)}>{children}</h2>
 }
 
 export function DialogDescription({ children, className }: { children: React.ReactNode; className?: string }) {

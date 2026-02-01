@@ -74,11 +74,11 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-          <p className="text-muted-foreground">مرحباً بك في نظام الفجر الجديدة</p>
+          <h1 className="text-xl sm:text-2xl font-bold">لوحة التحكم</h1>
+          <p className="text-sm text-muted-foreground">مرحباً بك في نظام الفجر الجديدة</p>
         </div>
         
         {/* Branch Filter */}
@@ -87,7 +87,7 @@ export default function Dashboard() {
           <select
             value={selectedBranchId}
             onChange={(e) => setSelectedBranchId(e.target.value)}
-            className="px-4 py-2 border rounded-md bg-background"
+            className="px-3 sm:px-4 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
           >
             <option value="all">جميع الفروع</option>
             {branches?.map((branch) => (
@@ -99,7 +99,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map((card) => (
           <Card key={card.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -113,7 +113,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>آخر المبيعات</CardTitle>
