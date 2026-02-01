@@ -354,7 +354,7 @@ export default function Customers() {
               <div className="mb-4 text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} عميل
               </div>
-              <div className="hidden md:block overflow-x-auto">
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
