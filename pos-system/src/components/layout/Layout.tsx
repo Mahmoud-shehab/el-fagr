@@ -12,8 +12,10 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 lg:ml-0">
-        <Outlet />
+      <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 w-full lg:w-auto">
+        <div className="pt-16 lg:pt-0">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

@@ -53,8 +53,8 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "w-64 bg-white border-l h-screen flex flex-col fixed lg:static z-40 transition-transform duration-300",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        "w-64 bg-white border-l h-screen flex flex-col fixed lg:static z-40 transition-transform duration-300 right-0",
+        isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
       )}>
       <div className="p-4 border-b">
         <div className="flex items-center gap-3">
