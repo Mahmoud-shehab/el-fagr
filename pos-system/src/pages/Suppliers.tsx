@@ -98,20 +98,20 @@ export default function Suppliers() {
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">الموردين</h1>
-          <p className="text-muted-foreground">إدارة بيانات الموردين</p>
+          <h1 className="text-xl sm:text-2xl font-bold">الموردين</h1>
+          <p className="text-sm text-muted-foreground">إدارة بيانات الموردين</p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
+        <Button onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 ml-2" />
           إضافة مورد
         </Button>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-lg">
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>إضافة مورد جديد</DialogTitle>
           </DialogHeader>
@@ -147,7 +147,7 @@ export default function Suppliers() {
                 placeholder="0" />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
             <Button onClick={() => createMutation.mutate()}
               disabled={!formData.name_ar || !formData.phone || createMutation.isPending}>

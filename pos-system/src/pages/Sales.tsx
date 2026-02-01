@@ -350,13 +350,13 @@ export default function Sales() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">المبيعات</h1>
-          <p className="text-muted-foreground">إدارة فواتير المبيعات</p>
+          <h1 className="text-xl sm:text-2xl font-bold">المبيعات</h1>
+          <p className="text-sm text-muted-foreground">إدارة فواتير المبيعات</p>
         </div>
-        <Button onClick={() => navigate('/pos')}>
+        <Button onClick={() => navigate('/pos')} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 ml-2" />
           فاتورة جديدة
         </Button>
@@ -364,8 +364,8 @@ export default function Sales() {
 
       <Card>
         <CardHeader>
-          <div className="flex gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-full sm:min-w-[200px]">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="بحث برقم الفاتورة أو اسم العميل..."
@@ -379,7 +379,7 @@ export default function Sales() {
             <select
               value={taxFilter}
               onChange={(e) => setTaxFilter(e.target.value as 'all' | 'with_tax' | 'without_tax')}
-              className="px-3 py-2 border rounded-md bg-background"
+              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
               aria-label="فلتر الضريبة"
             >
               <option value="all">الكل (ضريبة)</option>
@@ -391,7 +391,7 @@ export default function Sales() {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value as 'all' | 'paid' | 'credit')}
-              className="px-3 py-2 border rounded-md bg-background"
+              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
               aria-label="فلتر الدفع"
             >
               <option value="all">الكل (دفع)</option>
@@ -403,7 +403,7 @@ export default function Sales() {
             <select
               value={liftedFilter}
               onChange={(e) => setLiftedFilter(e.target.value as 'all' | 'lifted' | 'not_lifted')}
-              className="px-3 py-2 border rounded-md bg-background"
+              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
               aria-label="فلتر الرفع"
             >
               <option value="all">الكل (رفع)</option>
@@ -415,7 +415,7 @@ export default function Sales() {
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
+              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
               aria-label="فلتر الفرع"
             >
               <option value="all">جميع المنافذ</option>
@@ -437,50 +437,51 @@ export default function Sales() {
               <div className="mb-4 text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} فاتورة
               </div>
-              <div className="overflow-x-auto">
-              <table className="w-full">
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle">
+              <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-right py-3 px-2">رقم الفاتورة</th>
-                    <th className="text-right py-3 px-2">التاريخ</th>
-                    <th className="text-right py-3 px-2">العميل</th>
-                    <th className="text-right py-3 px-2">الفرع</th>
-                    <th className="text-right py-3 px-2">الإجمالي</th>
-                    <th className="text-right py-3 px-2">المدفوع</th>
-                    <th className="text-right py-3 px-2">المتبقي</th>
-                    <th className="text-right py-3 px-2">ضريبة</th>
-                    <th className="text-right py-3 px-2">الدفع</th>
-                    <th className="text-right py-3 px-2">الرفع</th>
-                    <th className="text-right py-3 px-2">إجراءات</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm">رقم الفاتورة</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden md:table-cell">التاريخ</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm">العميل</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">الفرع</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm">الإجمالي</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden sm:table-cell">المدفوع</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm">المتبقي</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden md:table-cell">ضريبة</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">الدفع</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden xl:table-cell">الرفع</th>
+                    <th className="text-right py-3 px-2 text-xs sm:text-sm">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sales.map((sale) => (
                     <tr key={sale.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono">{sale.invoice_number}</td>
-                      <td className="py-3 px-2">{formatDate(sale.invoice_date || sale.created_at!)}</td>
-                      <td className="py-3 px-2">{sale.customer?.name_ar || sale.customer_name || 'عميل نقدي'}</td>
-                      <td className="py-3 px-2">{sale.branch?.name_ar}</td>
-                      <td className="py-3 px-2">{formatCurrency(sale.total_amount || 0)}</td>
-                      <td className="py-3 px-2">{formatCurrency(sale.paid_amount || 0)}</td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 font-mono text-xs sm:text-sm">{sale.invoice_number}</td>
+                      <td className="py-3 px-2 text-xs sm:text-sm hidden md:table-cell">{formatDate(sale.invoice_date || sale.created_at!)}</td>
+                      <td className="py-3 px-2 text-xs sm:text-sm">{sale.customer?.name_ar || sale.customer_name || 'عميل نقدي'}</td>
+                      <td className="py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">{sale.branch?.name_ar}</td>
+                      <td className="py-3 px-2 text-xs sm:text-sm">{formatCurrency(sale.total_amount || 0)}</td>
+                      <td className="py-3 px-2 text-xs sm:text-sm hidden sm:table-cell">{formatCurrency(sale.paid_amount || 0)}</td>
+                      <td className="py-3 px-2 text-xs sm:text-sm">
                         {(sale.remaining_amount || 0) > 0 ? (
                           <span className="text-orange-600 font-semibold">{formatCurrency(sale.remaining_amount || 0)}</span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 hidden md:table-cell">
                         <span className={`px-2 py-1 rounded-full text-xs ${sale.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                           {sale.has_tax ? 'بضريبة' : 'بدون'}
                         </span>
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 hidden lg:table-cell">
                         <span className={`px-2 py-1 rounded-full text-xs ${sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                           {sale.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
                         </span>
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 hidden xl:table-cell">
                         <select
                           value={sale.is_lifted ? 'lifted' : 'not_lifted'}
                           onChange={(e) => handleLiftedChange(sale.id, e.target.value === 'lifted')}
@@ -495,12 +496,12 @@ export default function Sales() {
                         </select>
                       </td>
                       <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => viewSaleDetails(sale.id)} title="عرض التفاصيل">
-                            <Eye className="h-4 w-4" />
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => viewSaleDetails(sale.id)} title="عرض التفاصيل" className="h-8 w-8">
+                            <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handlePrint(sale.id)} title="طباعة">
-                            <Printer className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" onClick={() => handlePrint(sale.id)} title="طباعة" className="h-8 w-8">
+                            <Printer className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       </td>
@@ -509,20 +510,22 @@ export default function Sales() {
                 </tbody>
               </table>
             </div>
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="w-full sm:w-auto"
                 >
                   السابق
                 </Button>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum: number
                     if (totalPages <= 5) {
@@ -541,7 +544,7 @@ export default function Sales() {
                         variant={currentPage === pageNum ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setCurrentPage(pageNum)}
-                        className="w-10"
+                        className="w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"
                       >
                         {pageNum}
                       </Button>
@@ -554,6 +557,7 @@ export default function Sales() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="w-full sm:w-auto"
                 >
                   التالي
                 </Button>
@@ -566,14 +570,14 @@ export default function Sales() {
 
       {/* Sale Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl" onClose={() => setShowDetails(false)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onClose={() => setShowDetails(false)}>
           <DialogHeader>
             <DialogTitle>تفاصيل الفاتورة - {selectedSale?.invoice_number}</DialogTitle>
           </DialogHeader>
           
           {selectedSale && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                 <div><span className="text-muted-foreground">التاريخ:</span> {formatDate(selectedSale.invoice_date)}</div>
                 <div><span className="text-muted-foreground">العميل:</span> {selectedSale.customer?.name_ar || selectedSale.customer_name || 'عميل نقدي'}</div>
                 <div><span className="text-muted-foreground">الفرع:</span> {selectedSale.branch?.name_ar}</div>
@@ -592,53 +596,53 @@ export default function Sales() {
                 </div>
               </div>
 
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border rounded-lg overflow-hidden overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm min-w-[400px]">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-right py-2 px-3">الصنف</th>
-                      <th className="text-right py-2 px-3">الكمية</th>
-                      <th className="text-right py-2 px-3">السعر</th>
-                      <th className="text-right py-2 px-3">الإجمالي</th>
+                      <th className="text-right py-2 px-2 sm:px-3">الصنف</th>
+                      <th className="text-right py-2 px-2 sm:px-3">الكمية</th>
+                      <th className="text-right py-2 px-2 sm:px-3">السعر</th>
+                      <th className="text-right py-2 px-2 sm:px-3">الإجمالي</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedSale.items?.map((item: SaleItem) => (
                       <tr key={item.id} className="border-t">
-                        <td className="py-2 px-3">{item.product?.name_ar}</td>
-                        <td className="py-2 px-3">{item.quantity}</td>
-                        <td className="py-2 px-3">{formatCurrency(item.unit_price)}</td>
-                        <td className="py-2 px-3">{formatCurrency(item.total_price)}</td>
+                        <td className="py-2 px-2 sm:px-3">{item.product?.name_ar}</td>
+                        <td className="py-2 px-2 sm:px-3">{item.quantity}</td>
+                        <td className="py-2 px-2 sm:px-3">{formatCurrency(item.unit_price)}</td>
+                        <td className="py-2 px-2 sm:px-3">{formatCurrency(item.total_price)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="border-t pt-4 space-y-2">
+              <div className="border-t pt-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{formatCurrency(selectedSale.subtotal || selectedSale.total_amount)}</span></div>
                 {selectedSale.discount_amount > 0 && (
                   <div className="flex justify-between text-red-600"><span>الخصم:</span><span>-{formatCurrency(selectedSale.discount_amount)}</span></div>
                 )}
-                <div className="flex justify-between font-bold text-lg"><span>الإجمالي:</span><span>{formatCurrency(selectedSale.total_amount)}</span></div>
+                <div className="flex justify-between font-bold text-base sm:text-lg"><span>الإجمالي:</span><span>{formatCurrency(selectedSale.total_amount)}</span></div>
                 <div className="flex justify-between"><span>المدفوع:</span><span>{formatCurrency(selectedSale.paid_amount)}</span></div>
                 {selectedSale.remaining_amount > 0 && (
                   <div className="flex justify-between text-orange-600"><span>المتبقي:</span><span>{formatCurrency(selectedSale.remaining_amount)}</span></div>
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
                 {selectedSale.remaining_amount > 0 && (
                   <Button 
                     variant="outline"
                     onClick={() => setShowPaymentDialog(true)}
-                    className="bg-green-50 hover:bg-green-100"
+                    className="bg-green-50 hover:bg-green-100 w-full sm:w-auto"
                   >
                     إضافة دفعة
                   </Button>
                 )}
-                <Button variant="outline" onClick={() => setShowDetails(false)}>إغلاق</Button>
-                <Button onClick={() => handlePrint(selectedSale.id)}>
+                <Button variant="outline" onClick={() => setShowDetails(false)} className="w-full sm:w-auto">إغلاق</Button>
+                <Button onClick={() => handlePrint(selectedSale.id)} className="w-full sm:w-auto">
                   <Printer className="h-4 w-4 ml-2" />
                   طباعة
                 </Button>
@@ -650,14 +654,14 @@ export default function Sales() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>إضافة دفعة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground mb-2">المبلغ المتبقي</p>
-              <p className="text-2xl font-bold text-destructive">{formatCurrency(selectedSale?.remaining_amount || 0)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-destructive">{formatCurrency(selectedSale?.remaining_amount || 0)}</p>
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">المبلغ المدفوع</label>
@@ -669,16 +673,17 @@ export default function Sales() {
                 autoFocus
               />
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-col sm:flex-row gap-2 justify-end">
               <Button variant="outline" onClick={() => {
                 setShowPaymentDialog(false)
                 setPaymentAmount('')
-              }}>
+              }} className="w-full sm:w-auto">
                 إلغاء
               </Button>
               <Button 
                 onClick={handleAddPayment}
                 disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
+                className="w-full sm:w-auto"
               >
                 تأكيد الدفع
               </Button>

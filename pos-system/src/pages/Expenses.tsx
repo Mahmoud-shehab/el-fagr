@@ -123,18 +123,18 @@ export default function Expenses() {
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">المصروفات</h1>
-          <p className="text-muted-foreground">إدارة مصروفات الشركة</p>
+          <h1 className="text-xl sm:text-2xl font-bold">المصروفات</h1>
+          <p className="text-sm text-muted-foreground">إدارة مصروفات الشركة</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate('/expense-categories')}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => navigate('/expense-categories')} className="w-full sm:w-auto">
             <SettingsIcon className="h-4 w-4 ml-2" />
             إدارة الأنواع
           </Button>
-          <Button onClick={() => setShowDialog(true)}>
+          <Button onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 ml-2" />
             إضافة مصروف
           </Button>
@@ -142,7 +142,7 @@ export default function Expenses() {
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">إجمالي المصروفات</CardTitle>
