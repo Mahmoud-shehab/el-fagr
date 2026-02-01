@@ -35,13 +35,15 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-lg border"
-      >
-        <Menu className="h-6 w-6" />
-      </button>
+      {/* Mobile Menu Button - Hidden when sidebar is open */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-lg border"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+      )}
 
       {/* Overlay */}
       {isOpen && (
