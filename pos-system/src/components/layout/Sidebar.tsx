@@ -40,7 +40,7 @@ export default function Sidebar() {
         onClick={() => setIsOpen(!isOpen)}
         className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-lg border"
       >
-        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <Menu className="h-6 w-6" />
       </button>
 
       {/* Overlay */}
@@ -56,7 +56,16 @@ export default function Sidebar() {
         "w-64 bg-white border-l h-screen flex flex-col fixed lg:static z-40 transition-transform duration-300 right-0",
         isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
       )}>
-      <div className="p-4 border-b">
+      {/* Header with Logo and Close Button */}
+      <div className="p-4 border-b relative">
+        {/* Close Button - Only on Mobile */}
+        <button
+          onClick={() => setIsOpen(false)}
+          className="lg:hidden absolute top-4 left-4 p-1 hover:bg-muted rounded-md"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        
         <div className="flex items-center gap-3">
           <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-12 h-12 rounded-lg object-contain" />
           <div>
