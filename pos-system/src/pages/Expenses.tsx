@@ -7,7 +7,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, Search, Calendar, Building2, DollarSign, Filter, Settings as SettingsIcon } from 'lucide-react'
+import { Plus, Calendar, DollarSign, Settings as SettingsIcon } from 'lucide-react'
+
+interface ExpenseRow {
+  id: string
+  expense_number: string
+  expense_date: string
+  branch_id: string
+  category_id: string
+  amount: number
+  payment_method: string
+  payment_status: string
+  reference_number?: string
+  notes?: string
+  branch?: { name_ar: string }
+  category?: { name_ar: string }
+  created_by_user?: { full_name_ar?: string; full_name?: string }
+}
+
+interface BranchRow {
+  id: string
+  name_ar: string
+  status: string
+}
+
+interface CategoryRow {
+  id: string
+  name_ar: string
+  is_active: boolean
+}
 
 export default function Expenses() {
   const [showDialog, setShowDialog] = useState(false)
@@ -30,7 +58,7 @@ export default function Expenses() {
   const navigate = useNavigate()
 
   // Fetch branches
-  const { data: branches } = useQuery({
+  const { data: branches } = useQuery<BranchRow[]>({
     queryKey: ['expense-branches'],
     queryFn: async () => {
       const { data } = await supabase
@@ -38,12 +66,12 @@ export default function Expenses() {
         .select('*')
         .eq('status', 'active')
         .order('name_ar')
-      return data || []
+      return (data || []) as BranchRow[]
     },
   })
 
   // Fetch categories
-  const { data: categories } = useQuery({
+  const { data: categories } = useQuery<CategoryRow[]>({
     queryKey: ['expense-categories-list'],
     queryFn: async () => {
       const { data } = await supabase
@@ -51,12 +79,12 @@ export default function Expenses() {
         .select('*')
         .eq('is_active', true)
         .order('name_ar')
-      return data || []
+      return (data || []) as CategoryRow[]
     },
   })
 
   // Fetch expenses
-  const { data: expenses, isLoading } = useQuery({
+  const { data: expenses, isLoading } = useQuery<ExpenseRow[]>({
     queryKey: ['expenses', dateFrom, dateTo, branchFilter, categoryFilter, statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -71,7 +99,7 @@ export default function Expenses() {
       if (statusFilter !== 'all') query = query.eq('payment_status', statusFilter)
 
       const { data } = await query.limit(100)
-      return data || []
+      return (data || []) as ExpenseRow[]
     },
   })
 
@@ -175,11 +203,11 @@ export default function Expenses() {
 
       {/* Add Expense Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent onClose={() => setShowDialog(false)} className="max-w-2xl">
+        <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>إضافة مصروف جديد</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">إضافة مصروف جديد</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">التاريخ *</label>
               <Input
@@ -193,7 +221,7 @@ export default function Expenses() {
               <select
                 value={formData.branch_id}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, branch_id: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md bg-background"
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
               >
                 <option value="">اختر الفرع</option>
                 {branches?.map((branch) => (
@@ -206,7 +234,7 @@ export default function Expenses() {
               <select
                 value={formData.category_id}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, category_id: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md bg-background"
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
               >
                 <option value="">اختر النوع</option>
                 {categories?.map((cat) => (
@@ -228,7 +256,7 @@ export default function Expenses() {
               <select
                 value={formData.payment_method}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, payment_method: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md bg-background"
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
               >
                 <option value="cash">نقدي</option>
                 <option value="bank_transfer">تحويل بنكي</option>
@@ -241,13 +269,13 @@ export default function Expenses() {
               <select
                 value={formData.payment_status}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, payment_status: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md bg-background"
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
               >
                 <option value="paid">مدفوع</option>
                 <option value="pending">معلق</option>
               </select>
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="text-sm font-medium">رقم المرجع</label>
               <Input
                 value={formData.reference_number}
@@ -255,7 +283,7 @@ export default function Expenses() {
                 placeholder="رقم الفاتورة أو المرجع"
               />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="text-sm font-medium">ملاحظات</label>
               <Input
                 value={formData.notes}
@@ -264,11 +292,12 @@ export default function Expenses() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">إلغاء</Button>
             <Button
               onClick={() => createMutation.mutate()}
               disabled={!formData.branch_id || !formData.category_id || !formData.amount || createMutation.isPending}
+              className="w-full sm:w-auto"
             >
               {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
             </Button>
@@ -279,54 +308,62 @@ export default function Expenses() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <div className="flex gap-4 flex-wrap items-center">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3">
+            {/* Date Range */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span className="text-sm">الفترة:</span>
+              </div>
               <Input
                 type="date"
                 value={dateFrom}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)}
-                className="w-40"
+                className="flex-1 sm:w-40"
                 placeholder="من"
               />
-              <span>إلى</span>
+              <span className="text-center sm:text-right text-sm">إلى</span>
               <Input
                 type="date"
                 value={dateTo}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)}
-                className="w-40"
+                className="flex-1 sm:w-40"
                 placeholder="إلى"
               />
             </div>
-            <select
-              value={branchFilter}
-              onChange={(e) => setBranchFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">جميع الفروع</option>
-              {branches?.map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name_ar}</option>
-              ))}
-            </select>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">جميع الأنواع</option>
-              {categories?.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name_ar}</option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">جميع الحالات</option>
-              <option value="paid">مدفوع</option>
-              <option value="pending">معلق</option>
-            </select>
+            
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <select
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">جميع الفروع</option>
+                {branches?.map((branch) => (
+                  <option key={branch.id} value={branch.id}>{branch.name_ar}</option>
+                ))}
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">جميع الأنواع</option>
+                {categories?.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name_ar}</option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">جميع الحالات</option>
+                <option value="paid">مدفوع</option>
+                <option value="pending">معلق</option>
+              </select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
