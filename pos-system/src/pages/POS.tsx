@@ -304,18 +304,18 @@ export default function POS() {
   })
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex gap-4">
+    <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row gap-2 sm:gap-4">
       {/* Products Section */}
-      <div className="flex-1 flex flex-col">
-        <div className="mb-4 space-y-2">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="mb-2 sm:mb-4 space-y-2">
           {/* Branch Selection */}
           <div className="relative">
             <div 
-              className="flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:bg-muted bg-card"
+              className="flex items-center gap-2 p-2 sm:p-3 border rounded-md cursor-pointer hover:bg-muted bg-card"
               onClick={() => setShowBranchSelect(!showBranchSelect)}
             >
-              <Building2 className="h-5 w-5 text-primary" />
-              <span className="flex-1 font-medium">
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <span className="flex-1 font-medium text-sm sm:text-base">
                 {selectedBranch ? selectedBranch.name_ar : 'اختر منفذ البيع'}
               </span>
             </div>
@@ -343,12 +343,12 @@ export default function POS() {
 
           {/* Search */}
           <div className="relative">
-            <Barcode className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Barcode className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             <Input
-              placeholder="بحث بالكود أو الباركود أو الاسم..."
+              placeholder="بحث بالكود أو الباركود..."
               value={search}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-              className="pr-12 text-lg h-12"
+              className="pr-10 sm:pr-12 text-base sm:text-lg h-10 sm:h-12"
               autoFocus
               disabled={!selectedBranchId}
             />
@@ -358,26 +358,26 @@ export default function POS() {
         <div className="flex-1 overflow-auto">
           {!selectedBranchId ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              <p>الرجاء اختيار منفذ البيع أولاً</p>
+              <p className="text-sm sm:text-base">الرجاء اختيار منفذ البيع أولاً</p>
             </div>
           ) : products && products.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              <p>لا توجد منتجات متاحة في هذا المنفذ</p>
+              <p className="text-sm sm:text-base">لا توجد منتجات متاحة في هذا المنفذ</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
               {products?.map((product) => (
                 <button
                   type="button"
                   key={product.id}
                   onClick={() => addToCart(product)}
-                  className="p-4 bg-card border rounded-lg hover:border-primary hover:shadow-md transition-all text-right relative"
+                  className="p-2 sm:p-4 bg-card border rounded-lg hover:border-primary hover:shadow-md transition-all text-right relative"
                 >
-                  <p className="font-bold text-lg truncate">{product.name_ar}</p>
-                  <p className="text-sm text-muted-foreground">{product.code}</p>
-                  <p className="text-primary font-bold mt-2">{formatCurrency(product.selling_price || 0)}</p>
-                  <span className="absolute top-2 left-2 bg-muted px-2 py-1 rounded text-xs">
-                    متاح: {product.available_quantity}
+                  <p className="font-bold text-sm sm:text-lg truncate">{product.name_ar}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{product.code}</p>
+                  <p className="text-primary font-bold mt-1 sm:mt-2 text-sm sm:text-base">{formatCurrency(product.selling_price || 0)}</p>
+                  <span className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-muted px-1 sm:px-2 py-0.5 sm:py-1 rounded text-xs">
+                    {product.available_quantity}
                   </span>
                 </button>
               ))}
@@ -387,15 +387,20 @@ export default function POS() {
       </div>
 
       {/* Cart Section */}
-      <Card className="w-[400px] flex flex-col">
-        <CardHeader className="pb-2">
+      <Card className="w-full lg:w-[400px] flex flex-col max-h-[50vh] lg:max-h-none">
+        <CardHeader className="pb-2 p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
               الفاتورة
+              {cart.length > 0 && (
+                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs">
+                  {cart.length}
+                </span>
+              )}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={clearCart}>
-              <Trash2 className="h-4 w-4" />
+            <Button variant="ghost" size="sm" onClick={clearCart} className="h-8 w-8 sm:h-9 sm:w-9">
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
           
@@ -405,8 +410,8 @@ export default function POS() {
               className="flex items-center gap-2 p-2 border rounded-md cursor-pointer hover:bg-muted"
               onClick={() => setShowCustomerSearch(!showCustomerSearch)}
             >
-              <User className="h-4 w-4" />
-              <span className="flex-1 text-sm">
+              <User className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="flex-1 text-xs sm:text-sm">
                 {selectedCustomer ? selectedCustomer.name_ar || selectedCustomer.name : 'عميل نقدي'}
               </span>
             </div>
@@ -444,23 +449,23 @@ export default function POS() {
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-auto p-2">
+        <CardContent className="flex-1 overflow-auto p-2 sm:p-4">
           {cart.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              <p>السلة فارغة</p>
+              <p className="text-sm">السلة فارغة</p>
             </div>
           ) : (
             <div className="space-y-2">
               {cart.map((item, index) => (
-                <div key={item.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
-                  <span className="text-xs text-muted-foreground w-5">{index + 1}</span>
+                <div key={item.id} className="flex items-center gap-1 sm:gap-2 p-2 bg-muted/50 rounded">
+                  <span className="text-xs text-muted-foreground w-4 sm:w-5">{index + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{item.product.name_ar}</p>
+                    <p className="font-medium text-xs sm:text-sm truncate">{item.product.name_ar}</p>
                     <p className="text-xs text-muted-foreground">{formatCurrency(item.unit_price)}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, -1)}>
-                      <Minus className="h-3 w-3" />
+                  <div className="flex items-center gap-0.5 sm:gap-1">
+                    <Button variant="outline" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => updateQuantity(item.id, -1)}>
+                      <Minus className="h-2 w-2 sm:h-3 sm:w-3" />
                     </Button>
                     <Input
                       type="number"
@@ -479,17 +484,17 @@ export default function POS() {
                             : cartItem
                         ))
                       }}
-                      className="w-16 h-7 text-center font-bold p-1"
+                      className="w-12 sm:w-16 h-6 sm:h-7 text-center font-bold p-1 text-xs sm:text-sm"
                       min={1}
                       max={item.product.available_quantity || 999}
                     />
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, 1)}>
-                      <Plus className="h-3 w-3" />
+                    <Button variant="outline" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => updateQuantity(item.id, 1)}>
+                      <Plus className="h-2 w-2 sm:h-3 sm:w-3" />
                     </Button>
                   </div>
-                  <span className="font-bold w-20 text-left">{formatCurrency(item.total)}</span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeFromCart(item.id)}>
-                    <Trash2 className="h-3 w-3 text-destructive" />
+                  <span className="font-bold w-16 sm:w-20 text-left text-xs sm:text-sm">{formatCurrency(item.total)}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => removeFromCart(item.id)}>
+                    <Trash2 className="h-2 w-2 sm:h-3 sm:w-3 text-destructive" />
                   </Button>
                 </div>
               ))}
@@ -498,69 +503,69 @@ export default function POS() {
         </CardContent>
 
         {/* Totals & Payment */}
-        <div className="border-t p-4 space-y-3">
-          <div className="flex justify-between text-sm">
+        <div className="border-t p-2 sm:p-4 space-y-2 sm:space-y-3">
+          <div className="flex justify-between text-xs sm:text-sm">
             <span>المجموع الفرعي</span>
             <span>{formatCurrency(subtotal)}</span>
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm">خصم %</span>
+            <span className="text-xs sm:text-sm">خصم %</span>
             <Input
               type="number"
               value={discount}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setDiscount(parseFloat(e.target.value) || 0)}
-              className="w-20 h-8 text-center"
+              className="w-16 sm:w-20 h-7 sm:h-8 text-center text-xs sm:text-sm"
               min={0}
               max={100}
             />
-            <span className="text-sm text-muted-foreground">({formatCurrency(discountAmount)})</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">({formatCurrency(discountAmount)})</span>
           </div>
 
           {/* Tax Radio Buttons */}
-          <div className="flex items-center gap-4 py-2 border-y">
-            <span className="text-sm font-medium">الضريبة:</span>
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center gap-2 sm:gap-4 py-2 border-y">
+            <span className="text-xs sm:text-sm font-medium">الضريبة:</span>
+            <label className="flex items-center gap-1 sm:gap-2 cursor-pointer">
               <input
                 type="radio"
                 name="tax"
                 checked={!hasTax}
                 onChange={() => setHasTax(false)}
-                className="w-4 h-4"
+                className="w-3 h-3 sm:w-4 sm:h-4"
               />
-              <span className="text-sm">بدون ضريبة</span>
+              <span className="text-xs sm:text-sm">بدون</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-1 sm:gap-2 cursor-pointer">
               <input
                 type="radio"
                 name="tax"
                 checked={hasTax}
                 onChange={() => setHasTax(true)}
-                className="w-4 h-4"
+                className="w-3 h-3 sm:w-4 sm:h-4"
               />
-              <span className="text-sm">بضريبة 14%</span>
+              <span className="text-xs sm:text-sm">بضريبة</span>
             </label>
           </div>
 
           {hasTax && (
-            <div className="flex justify-between text-sm text-blue-600">
+            <div className="flex justify-between text-xs sm:text-sm text-blue-600">
               <span>الضريبة (14%)</span>
               <span>{formatCurrency(taxAmount)}</span>
             </div>
           )}
 
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
+          <div className="flex justify-between text-base sm:text-lg font-bold border-t pt-2">
             <span>الإجمالي</span>
             <span className="text-primary">{formatCurrency(total)}</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm">المدفوع</span>
+            <span className="text-xs sm:text-sm">المدفوع</span>
             <Input
               type="number"
               value={paidAmount}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setPaidAmount(e.target.value)}
-              className="flex-1 h-10 text-lg"
+              className="flex-1 h-8 sm:h-10 text-base sm:text-lg"
               placeholder="0"
             />
           </div>
@@ -568,25 +573,25 @@ export default function POS() {
           {/* Due Date for Credit Sales */}
           {selectedCustomer && (
             <div className="flex items-center gap-2">
-              <span className="text-sm">تاريخ الاستحقاق</span>
+              <span className="text-xs sm:text-sm whitespace-nowrap">تاريخ الاستحقاق</span>
               <Input
                 type="date"
                 value={dueDate}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value)}
-                className="flex-1 h-10"
-                placeholder="اختياري للآجل"
+                className="flex-1 h-8 sm:h-10 text-xs sm:text-sm"
+                placeholder="اختياري"
               />
             </div>
           )}
 
           {remaining > 0 && (
-            <div className="flex justify-between text-destructive">
+            <div className="flex justify-between text-destructive text-xs sm:text-sm">
               <span>المتبقي</span>
               <span>{formatCurrency(remaining)}</span>
             </div>
           )}
           {remaining < 0 && (
-            <div className="flex justify-between text-green-600">
+            <div className="flex justify-between text-green-600 text-xs sm:text-sm">
               <span>الباقي للعميل</span>
               <span>{formatCurrency(Math.abs(remaining))}</span>
             </div>
@@ -594,20 +599,20 @@ export default function POS() {
 
           <div className="grid grid-cols-2 gap-2 pt-2">
             <Button 
-              className="h-12" 
+              className="h-10 sm:h-12 text-sm sm:text-base" 
               onClick={() => createSale.mutate('cash')}
               disabled={cart.length === 0 || createSale.isPending}
             >
-              <Banknote className="h-5 w-5 ml-2" />
+              <Banknote className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
               نقدي
             </Button>
             <Button 
               variant="outline" 
-              className="h-12"
+              className="h-10 sm:h-12 text-sm sm:text-base"
               onClick={() => createSale.mutate('credit')}
               disabled={cart.length === 0 || !selectedCustomer || createSale.isPending}
             >
-              <CreditCard className="h-5 w-5 ml-2" />
+              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
               آجل
             </Button>
           </div>
