@@ -350,22 +350,23 @@ export default function Sales() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">المبيعات</h1>
+          <h1 className="text-xl md:text-2xl font-bold">المبيعات</h1>
           <p className="text-sm text-muted-foreground">إدارة فواتير المبيعات</p>
         </div>
         <Button onClick={() => navigate('/pos')} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 ml-2" />
-          فاتورة جديدة
+          <span className="hidden sm:inline">فاتورة جديدة</span>
+          <span className="sm:hidden">جديد</span>
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-full sm:min-w-[200px]">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="بحث برقم الفاتورة أو اسم العميل..."
@@ -379,7 +380,7 @@ export default function Sales() {
             <select
               value={taxFilter}
               onChange={(e) => setTaxFilter(e.target.value as 'all' | 'with_tax' | 'without_tax')}
-              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
+              className="px-3 py-2 border rounded-md bg-background text-sm"
               aria-label="فلتر الضريبة"
             >
               <option value="all">الكل (ضريبة)</option>
@@ -391,7 +392,7 @@ export default function Sales() {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value as 'all' | 'paid' | 'credit')}
-              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
+              className="px-3 py-2 border rounded-md bg-background text-sm"
               aria-label="فلتر الدفع"
             >
               <option value="all">الكل (دفع)</option>
@@ -403,7 +404,7 @@ export default function Sales() {
             <select
               value={liftedFilter}
               onChange={(e) => setLiftedFilter(e.target.value as 'all' | 'lifted' | 'not_lifted')}
-              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
+              className="px-3 py-2 border rounded-md bg-background text-sm"
               aria-label="فلتر الرفع"
             >
               <option value="all">الكل (رفع)</option>
@@ -415,7 +416,7 @@ export default function Sales() {
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-auto"
+              className="px-3 py-2 border rounded-md bg-background text-sm"
               aria-label="فلتر الفرع"
             >
               <option value="all">جميع المنافذ</option>
@@ -434,54 +435,125 @@ export default function Sales() {
             <p className="text-center py-8 text-muted-foreground">لا توجد فواتير</p>
           ) : (
             <>
-              <div className="mb-4 text-sm text-muted-foreground">
+              <div className="mb-4 text-xs sm:text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} فاتورة
               </div>
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle">
-              <table className="w-full min-w-[900px]">
+              
+              {/* Mobile Cards */}
+              <div className="block md:hidden space-y-3">
+                {sales.map((sale) => (
+                  <Card key={sale.id} className="p-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-sm font-mono">{sale.invoice_number}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(sale.invoice_date || sale.created_at!)}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => viewSaleDetails(sale.id)} title="عرض">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handlePrint(sale.id)} title="طباعة">
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">العميل: </span>
+                          <span className="font-medium">{sale.customer?.name_ar || sale.customer_name || 'عميل نقدي'}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">الفرع: </span>
+                          <span className="font-medium">{sale.branch?.name_ar}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <span className="text-muted-foreground">الإجمالي: </span>
+                            <span className="font-bold">{formatCurrency(sale.total_amount || 0)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">المدفوع: </span>
+                            <span className="font-medium">{formatCurrency(sale.paid_amount || 0)}</span>
+                          </div>
+                          {(sale.remaining_amount || 0) > 0 && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">المتبقي: </span>
+                              <span className="font-bold text-orange-600">{formatCurrency(sale.remaining_amount || 0)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className={`px-2 py-1 rounded-full text-xs ${sale.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                          {sale.has_tax ? 'بضريبة' : 'بدون'}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs ${sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {sale.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
+                        </span>
+                        <select
+                          value={sale.is_lifted ? 'lifted' : 'not_lifted'}
+                          onChange={(e) => handleLiftedChange(sale.id, e.target.value === 'lifted')}
+                          className={`px-2 py-1 rounded-md text-xs border ${
+                            sale.is_lifted 
+                              ? 'bg-green-50 text-green-700 border-green-200' 
+                              : 'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                        >
+                          <option value="lifted">تم الرفع</option>
+                          <option value="not_lifted">لم يتم الرفع</option>
+                        </select>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">رقم الفاتورة</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden md:table-cell">التاريخ</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">العميل</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">الفرع</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">الإجمالي</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden sm:table-cell">المدفوع</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">المتبقي</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden md:table-cell">ضريبة</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">الدفع</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm hidden xl:table-cell">الرفع</th>
-                    <th className="text-right py-3 px-2 text-xs sm:text-sm">إجراءات</th>
+                    <th className="text-right py-3 px-2">رقم الفاتورة</th>
+                    <th className="text-right py-3 px-2">التاريخ</th>
+                    <th className="text-right py-3 px-2">العميل</th>
+                    <th className="text-right py-3 px-2">الفرع</th>
+                    <th className="text-right py-3 px-2">الإجمالي</th>
+                    <th className="text-right py-3 px-2">المدفوع</th>
+                    <th className="text-right py-3 px-2">المتبقي</th>
+                    <th className="text-right py-3 px-2">ضريبة</th>
+                    <th className="text-right py-3 px-2">الدفع</th>
+                    <th className="text-right py-3 px-2">الرفع</th>
+                    <th className="text-right py-3 px-2">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sales.map((sale) => (
                     <tr key={sale.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono text-xs sm:text-sm">{sale.invoice_number}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm hidden md:table-cell">{formatDate(sale.invoice_date || sale.created_at!)}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm">{sale.customer?.name_ar || sale.customer_name || 'عميل نقدي'}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm hidden lg:table-cell">{sale.branch?.name_ar}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm">{formatCurrency(sale.total_amount || 0)}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm hidden sm:table-cell">{formatCurrency(sale.paid_amount || 0)}</td>
-                      <td className="py-3 px-2 text-xs sm:text-sm">
+                      <td className="py-3 px-2 font-mono text-sm">{sale.invoice_number}</td>
+                      <td className="py-3 px-2 text-sm">{formatDate(sale.invoice_date || sale.created_at!)}</td>
+                      <td className="py-3 px-2 text-sm">{sale.customer?.name_ar || sale.customer_name || 'عميل نقدي'}</td>
+                      <td className="py-3 px-2 text-sm">{sale.branch?.name_ar}</td>
+                      <td className="py-3 px-2 text-sm">{formatCurrency(sale.total_amount || 0)}</td>
+                      <td className="py-3 px-2 text-sm">{formatCurrency(sale.paid_amount || 0)}</td>
+                      <td className="py-3 px-2 text-sm">
                         {(sale.remaining_amount || 0) > 0 ? (
                           <span className="text-orange-600 font-semibold">{formatCurrency(sale.remaining_amount || 0)}</span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-2 hidden md:table-cell">
+                      <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${sale.has_tax ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                           {sale.has_tax ? 'بضريبة' : 'بدون'}
                         </span>
                       </td>
-                      <td className="py-3 px-2 hidden lg:table-cell">
+                      <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                           {sale.payment_status === 'paid' ? 'مدفوع' : 'آجل'}
                         </span>
                       </td>
-                      <td className="py-3 px-2 hidden xl:table-cell">
+                      <td className="py-3 px-2">
                         <select
                           value={sale.is_lifted ? 'lifted' : 'not_lifted'}
                           onChange={(e) => handleLiftedChange(sale.id, e.target.value === 'lifted')}
@@ -496,12 +568,12 @@ export default function Sales() {
                         </select>
                       </td>
                       <td className="py-3 px-2">
-                        <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="flex items-center gap-1">
                           <Button variant="ghost" size="icon" onClick={() => viewSaleDetails(sale.id)} title="عرض التفاصيل" className="h-8 w-8">
-                            <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => handlePrint(sale.id)} title="طباعة" className="h-8 w-8">
-                            <Printer className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Printer className="h-4 w-4" />
                           </Button>
                         </div>
                       </td>
@@ -510,22 +582,21 @@ export default function Sales() {
                 </tbody>
               </table>
             </div>
-            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between gap-2 mt-4 pt-4 border-t">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="w-full sm:w-auto"
+                  className="text-xs sm:text-sm"
                 >
                   السابق
                 </Button>
                 
-                <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+                <div className="flex items-center gap-1 sm:gap-2">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum: number
                     if (totalPages <= 5) {
@@ -544,7 +615,7 @@ export default function Sales() {
                         variant={currentPage === pageNum ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setCurrentPage(pageNum)}
-                        className="w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"
+                        className="w-8 h-8 sm:w-10 sm:h-10 p-0 text-xs sm:text-sm"
                       >
                         {pageNum}
                       </Button>
@@ -557,7 +628,7 @@ export default function Sales() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-full sm:w-auto"
+                  className="text-xs sm:text-sm"
                 >
                   التالي
                 </Button>
@@ -570,9 +641,9 @@ export default function Sales() {
 
       {/* Sale Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onClose={() => setShowDetails(false)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto" onClose={() => setShowDetails(false)}>
           <DialogHeader>
-            <DialogTitle>تفاصيل الفاتورة - {selectedSale?.invoice_number}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">تفاصيل الفاتورة - {selectedSale?.invoice_number}</DialogTitle>
           </DialogHeader>
           
           {selectedSale && (
@@ -654,9 +725,9 @@ export default function Sales() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>إضافة دفعة</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">إضافة دفعة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
