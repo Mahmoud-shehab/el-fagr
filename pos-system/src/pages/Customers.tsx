@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from 'react'
+﻿import React, { useState, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -354,8 +354,9 @@ export default function Customers() {
               <div className="mb-4 text-sm text-muted-foreground">
                 عرض {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} من {totalCount} عميل
               </div>
-              <div className="overflow-x-auto">
-              <table className="w-full">
+              <div className="overflow-x-auto -mx-4 sm:mx-0 hidden md:block">
+              <div className="inline-block min-w-full align-middle">
+              <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b">
                     <th className="text-right py-3 px-2">الكود</th>
@@ -426,6 +427,7 @@ export default function Customers() {
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
 
             {/* Mobile Cards */}
