@@ -657,7 +657,7 @@ function UsersSettings() {
 function CategoriesSettings() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null)
-  const [formData, setFormData] = useState({ name_ar: '', name: '' })
+  const [formData, setFormData] = useState({ name: '' })
   const queryClient = useQueryClient()
 
   const { data: categories } = useQuery<CategoryRow[]>({
@@ -675,8 +675,8 @@ function CategoriesSettings() {
         const { error } = await supabase
           .from('categories')
           .update({ 
-            name_ar: formData.name_ar,
-            name: formData.name || formData.name_ar // Use name_ar as fallback
+            name: formData.name,
+            name_ar: formData.name
           } as never)
           .eq('id', editingCategory.id)
         if (error) throw error
@@ -687,8 +687,8 @@ function CategoriesSettings() {
           .from('categories')
           .insert({
             code,
-            name: formData.name || formData.name_ar, // Use name_ar as fallback
-            name_ar: formData.name_ar,
+            name: formData.name,
+            name_ar: formData.name,
             is_active: true,
             sort_order: (categories?.length || 0) + 1
           } as never)
@@ -699,7 +699,7 @@ function CategoriesSettings() {
       queryClient.invalidateQueries({ queryKey: ['categories-settings'] })
       setShowDialog(false)
       setEditingCategory(null)
-      setFormData({ name_ar: '', name: '' })
+      setFormData({ name: '' })
       alert(editingCategory ? 'تم تحديث التصنيف بنجاح!' : 'تم إضافة التصنيف بنجاح!')
     },
     onError: (error) => {
@@ -726,13 +726,13 @@ function CategoriesSettings() {
 
   const handleAdd = () => {
     setEditingCategory(null)
-    setFormData({ name_ar: '', name: '' })
+    setFormData({ name: '' })
     setShowDialog(true)
   }
 
   const handleEdit = (cat: CategoryRow) => {
     setEditingCategory(cat)
-    setFormData({ name_ar: cat.name_ar, name: (cat as any).name || cat.name_ar })
+    setFormData({ name: cat.name_ar || (cat as any).name })
     setShowDialog(true)
   }
 
@@ -825,26 +825,17 @@ function CategoriesSettings() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">الاسم بالعربي *</label>
-              <Input
-                value={formData.name_ar}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name_ar: e.target.value })}
-                placeholder="مثال: أحبار الطابعات"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">الاسم بالإنجليزية (اختياري)</label>
+              <label className="text-sm font-medium">الاسم</label>
               <Input
                 value={formData.name}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Example: Printer Ink"
+                placeholder="مثال: أحبار الطابعات أو Printer Ink"
               />
-              <p className="text-xs text-muted-foreground mt-1">إذا تركته فارغاً، سيتم استخدام الاسم العربي</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!formData.name_ar || saveMutation.isPending}>
+            <Button onClick={() => saveMutation.mutate()} disabled={!formData.name || saveMutation.isPending}>
               {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
             </Button>
           </DialogFooter>
