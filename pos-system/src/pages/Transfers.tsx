@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Search, Eye, ArrowLeftRight, X } from 'lucide-react'
+import { Plus, Search, Eye, ArrowLeftRight, X, Printer } from 'lucide-react'
 
 interface TransferRow {
   id: string
@@ -205,6 +205,15 @@ export default function Transfers() {
     setShowViewDialog(true)
   }
 
+  const handlePrintTransfer = (transfer: TransferRow) => {
+    // Open print dialog with transfer details
+    setSelectedTransfer(transfer)
+    // Wait for data to load then print
+    setTimeout(() => {
+      window.print()
+    }, 500)
+  }
+
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -397,9 +406,14 @@ export default function Transfers() {
                           <p className="font-bold text-sm font-mono">{transfer.transfer_number}</p>
                           <p className="text-xs text-muted-foreground">{formatDate(transfer.transfer_date || transfer.created_at!)}</p>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => handleViewTransfer(transfer)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleViewTransfer(transfer)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handlePrintTransfer(transfer)}>
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-1 text-xs">
                         <div className="flex items-center gap-2">
@@ -463,7 +477,10 @@ export default function Transfers() {
                           </span>
                         </td>
                         <td className="py-3 px-2">
-                          <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewTransfer(transfer)}><Eye className="h-4 w-4" /></Button>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" title="عرض" onClick={() => handleViewTransfer(transfer)}><Eye className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" title="طباعة" onClick={() => handlePrintTransfer(transfer)}><Printer className="h-4 w-4" /></Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
