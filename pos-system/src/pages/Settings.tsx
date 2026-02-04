@@ -671,10 +671,11 @@ function CategoriesSettings() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingCategory) {
-        // Update - don't update code
+        // Update - allow code update
         const { error } = await supabase
           .from('categories')
           .update({ 
+            code: formData.code,
             name: formData.name,
             name_ar: formData.name
           } as never)
@@ -832,7 +833,6 @@ function CategoriesSettings() {
                 value={formData.code}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, code: e.target.value })}
                 className="w-full h-10 border rounded-md px-3 text-sm"
-                disabled={!!editingCategory}
               >
                 <option value="">اختر الكود</option>
                 {categories?.map((cat) => (
@@ -841,9 +841,6 @@ function CategoriesSettings() {
                   </option>
                 ))}
               </select>
-              {editingCategory && (
-                <p className="text-xs text-muted-foreground mt-1">لا يمكن تعديل الكود بعد الإنشاء</p>
-              )}
             </div>
             <div>
               <label className="text-sm font-medium">الاسم</label>
