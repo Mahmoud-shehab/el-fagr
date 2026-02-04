@@ -55,7 +55,19 @@ export default function Sidebar() {
   const filteredMenuItems = menuItems.filter(item => {
     const userRole = user?.role?.name_ar || user?.role?.name
     
-    // Hide specific pages for محاسب and مدير فرع
+    // أمين مخزن - يرى فقط المخزون وجرد المخزون
+    if (userRole === 'أمين مخزن') {
+      const allowedPaths = ['/inventory', '/stock-count']
+      return allowedPaths.includes(item.path)
+    }
+    
+    // مندوب مبيعات - يرى فقط المنتجات
+    if (userRole === 'مندوب مبيعات') {
+      const allowedPaths = ['/products']
+      return allowedPaths.includes(item.path)
+    }
+    
+    // محاسب ومدير فرع - يخفي لوحة التحكم والتقارير وسحوبات الشركاء
     if (userRole === 'محاسب' || userRole === 'مدير فرع') {
       const hiddenPaths = ['/dashboard', '/partner-withdrawals', '/reports']
       if (hiddenPaths.includes(item.path)) {

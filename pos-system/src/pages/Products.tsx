@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import { Plus, Search, Edit, Trash2 } from 'lucide-react'
 
 interface ProductRow {
@@ -43,6 +44,10 @@ export default function Products() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  
+  // Check if user is sales representative
+  const isSalesRep = user?.role?.name_ar === 'مندوب مبيعات' || user?.role?.name === 'مندوب مبيعات'
 
   const { data: productsData, isLoading } = useQuery<{ products: ProductRow[]; totalCount: number; totalPages: number }>({
     queryKey: ['products', search, currentPage],
@@ -172,10 +177,12 @@ export default function Products() {
           <h1 className="text-xl md:text-2xl font-bold">المنتجات</h1>
           <p className="text-sm text-muted-foreground">إدارة المنتجات والأصناف</p>
         </div>
-        <Button onClick={openNew} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 ml-2" />
-          إضافة منتج
-        </Button>
+        {!isSalesRep && (
+          <Button onClick={openNew} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة منتج
+          </Button>
+        )}
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -271,7 +278,7 @@ export default function Products() {
                     <th className="text-right py-3 px-2">الاسم</th>
                     <th className="text-right py-3 px-2">التصنيف</th>
                     <th className="text-right py-3 px-2">الماركة</th>
-                    <th className="text-right py-3 px-2">سعر الشراء</th>
+                    {!isSalesRep && <th className="text-right py-3 px-2">سعر الشراء</th>}
                     <th className="text-right py-3 px-2">سعر البيع</th>
                     <th className="text-right py-3 px-2">الحالة</th>
                     <th className="text-right py-3 px-2">إجراءات</th>
@@ -284,7 +291,7 @@ export default function Products() {
                       <td className="py-3 px-2">{product.name_ar}</td>
                       <td className="py-3 px-2">{product.category?.name_ar || '-'}</td>
                       <td className="py-3 px-2">{product.brand?.name || '-'}</td>
-                      <td className="py-3 px-2">{formatCurrency(product.purchase_price || 0)}</td>
+                      {!isSalesRep && <td className="py-3 px-2">{formatCurrency(product.purchase_price || 0)}</td>}
                       <td className="py-3 px-2">{formatCurrency(product.selling_price || 0)}</td>
                       <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -294,14 +301,16 @@ export default function Products() {
                         </span>
                       </td>
                       <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(product)} title="تعديل">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product.id)} title="حذف">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                        {!isSalesRep && (
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(product)} title="تعديل">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product.id)} title="حذف">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -342,35 +351,39 @@ export default function Products() {
                           <span className="font-medium">{product.unit.name_ar}</span>
                         </div>
                       )}
-                      <div className="flex justify-between pt-2 border-t">
-                        <span className="text-muted-foreground">سعر الشراء:</span>
-                        <span className="font-bold text-blue-600">{formatCurrency(product.purchase_price || 0)}</span>
-                      </div>
-                      <div className="flex justify-between">
+                      {!isSalesRep && (
+                        <div className="flex justify-between pt-2 border-t">
+                          <span className="text-muted-foreground">سعر الشراء:</span>
+                          <span className="font-bold text-blue-600">{formatCurrency(product.purchase_price || 0)}</span>
+                        </div>
+                      )}
+                      <div className={`flex justify-between ${!isSalesRep ? '' : 'pt-2 border-t'}`}>
                         <span className="text-muted-foreground">سعر البيع:</span>
                         <span className="font-bold text-green-600">{formatCurrency(product.selling_price || 0)}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => openEdit(product)}
-                      >
-                        <Edit className="h-4 w-4 ml-2" />
-                        تعديل
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => deleteMutation.mutate(product.id)}
-                      >
-                        <Trash2 className="h-4 w-4 ml-2 text-destructive" />
-                        حذف
-                      </Button>
-                    </div>
+                    {!isSalesRep && (
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => openEdit(product)}
+                        >
+                          <Edit className="h-4 w-4 ml-2" />
+                          تعديل
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => deleteMutation.mutate(product.id)}
+                        >
+                          <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+                          حذف
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}

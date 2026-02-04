@@ -18,11 +18,17 @@ export default function ProtectedRoute({ children, allowedRoles, restrictedRoles
 
   // If restrictedRoles is specified, check if user role is in the restricted list
   if (restrictedRoles && userRole && restrictedRoles.includes(userRole)) {
+    // Redirect based on role
+    if (userRole === 'أمين مخزن') return <Navigate to="/inventory" replace />
+    if (userRole === 'مندوب مبيعات') return <Navigate to="/products" replace />
     return <Navigate to="/pos" replace />
   }
 
   // If allowedRoles is specified, check if user role is in the allowed list
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+    // Redirect based on role
+    if (userRole === 'أمين مخزن') return <Navigate to="/inventory" replace />
+    if (userRole === 'مندوب مبيعات') return <Navigate to="/products" replace />
     return <Navigate to="/pos" replace />
   }
 
