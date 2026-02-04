@@ -828,13 +828,19 @@ function CategoriesSettings() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">الكود</label>
-              <Input
+              <select
                 value={formData.code}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder="مثال: INK أو CAT001"
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, code: e.target.value })}
+                className="w-full h-10 border rounded-md px-3 text-sm"
                 disabled={!!editingCategory}
-                className={editingCategory ? 'bg-muted cursor-not-allowed' : ''}
-              />
+              >
+                <option value="">اختر الكود</option>
+                {categories?.map((cat) => (
+                  <option key={cat.code} value={cat.code}>
+                    {cat.code}
+                  </option>
+                ))}
+              </select>
               {editingCategory && (
                 <p className="text-xs text-muted-foreground mt-1">لا يمكن تعديل الكود بعد الإنشاء</p>
               )}
