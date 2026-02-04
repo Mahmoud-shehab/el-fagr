@@ -30,7 +30,7 @@ interface BrandRow { id: string; name: string }
 interface UnitRow { id: string; name_ar: string }
 
 const emptyProduct = {
-  code: '', name: '', name_ar: '', barcode: '',
+  code: '', name: '', name_ar: '',
   category_id: '', brand_id: '', unit_id: '',
   purchase_price: 0, selling_price: 0
 }
@@ -49,7 +49,7 @@ export default function Products() {
     queryFn: async () => {
       let countQuery = supabase.from('products').select('*', { count: 'exact', head: true })
       if (search) {
-        countQuery = countQuery.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,barcode.ilike.%${search}%`)
+        countQuery = countQuery.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%`)
       }
       const { count } = await countQuery
 
@@ -59,7 +59,7 @@ export default function Products() {
         .order('created_at', { ascending: false })
       
       if (search) {
-        query = query.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%,barcode.ilike.%${search}%`)
+        query = query.or(`name.ilike.%${search}%,name_ar.ilike.%${search}%,code.ilike.%${search}%`)
       }
       
       const from = (currentPage - 1) * itemsPerPage
@@ -109,7 +109,24 @@ export default function Products() {
       if (editingId) {
         await supabase.from('products').update(editingProduct as never).eq('id', editingId)
       } else {
-        await supabase.from('products').insert({ ...editingProduct, status: 'active' } as never)
+        // Generate sequential code
+        const { data: lastProduct } = await supabase
+          .from('products')
+          .select('code')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        
+        let nextNumber = 1
+        if (lastProduct?.code) {
+          const match = lastProduct.code.match(/PRD-(\d+)/)
+          if (match) {
+            nextNumber = parseInt(match[1]) + 1
+          }
+        }
+        const code = `PRD-${String(nextNumber).padStart(6, '0')}`
+        
+        await supabase.from('products').insert({ ...editingProduct, code, status: 'active' } as never)
       }
     },
     onSuccess: () => {
@@ -133,7 +150,6 @@ export default function Products() {
       code: product.code,
       name: product.name,
       name_ar: product.name_ar,
-      barcode: product.barcode || '',
       category_id: product.category_id || '',
       brand_id: product.brand_id || '',
       unit_id: product.unit_id || '',
@@ -168,14 +184,12 @@ export default function Products() {
             <DialogTitle className="text-base sm:text-lg">{editingId ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">الكود *</label>
-              <Input value={editingProduct.code} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, code: e.target.value})} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">الباركود</label>
-              <Input value={editingProduct.barcode} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, barcode: e.target.value})} />
-            </div>
+            {editingId && (
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">الكود</label>
+                <Input value={editingProduct.code} disabled className="bg-muted" />
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium">الاسم بالإنجليزية *</label>
               <Input value={editingProduct.name} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditingProduct({...editingProduct, name: e.target.value})} />
@@ -229,7 +243,7 @@ export default function Products() {
             <div className="relative flex-1 max-w-full sm:max-w-sm">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="بحث بالاسم أو الكود أو الباركود..."
+                placeholder="بحث بالاسم أو الكود..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pr-10"
@@ -304,9 +318,6 @@ export default function Products() {
                       <div>
                         <p className="font-bold text-sm">{product.name_ar}</p>
                         <p className="text-xs text-muted-foreground font-mono">{product.code}</p>
-                        {product.barcode && (
-                          <p className="text-xs text-muted-foreground">باركود: {product.barcode}</p>
-                        )}
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
