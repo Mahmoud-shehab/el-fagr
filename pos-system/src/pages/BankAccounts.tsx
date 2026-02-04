@@ -11,7 +11,7 @@ import { Plus, Building2, ArrowUpCircle, ArrowDownCircle, Calendar } from 'lucid
 
 interface BankAccountRow {
   id: string
-  account_name: string
+  account_holder: string
   account_number: string
   bank_name: string
   branch_name?: string
@@ -39,8 +39,8 @@ interface BankTransactionRow {
   reference_number?: string
   description?: string
   related_account_id?: string
-  account?: { account_name: string; bank_name: string }
-  related_account?: { account_name: string; bank_name: string }
+  account?: { account_holder: string; bank_name: string }
+  related_account?: { account_holder: string; bank_name: string }
 }
 
 export default function BankAccounts() {
@@ -53,7 +53,7 @@ export default function BankAccounts() {
   const { user } = useAuthStore()
 
   const [accountForm, setAccountForm] = useState({
-    account_name: '',
+    account_holder: '',
     account_number: '',
     bank_name: '',
     branch_name: '',
@@ -95,7 +95,7 @@ export default function BankAccounts() {
         .from('bank_accounts')
         .select('*, branch:branches(name_ar)')
         .eq('is_active', true)
-        .order('account_name')
+        .order('account_holder')
       
       const userRole = user?.role?.name_ar || user?.role?.name
       
@@ -129,7 +129,7 @@ export default function BankAccounts() {
       if (!selectedAccount) return []
       let query = supabase
         .from('bank_transactions')
-        .select('*, account:bank_accounts!bank_transactions_account_id_fkey(account_name, bank_name), related_account:bank_accounts!bank_transactions_related_account_id_fkey(account_name, bank_name)')
+        .select('*, account:bank_accounts!bank_transactions_account_id_fkey(account_holder, bank_name), related_account:bank_accounts!bank_transactions_related_account_id_fkey(account_holder, bank_name)')
         .eq('account_id', selectedAccount.id)
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false })
@@ -152,15 +152,16 @@ export default function BankAccounts() {
   const createAccountMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('bank_accounts').insert({
-        account_name: accountForm.account_name,
+        account_holder: accountForm.account_holder,
         account_number: accountForm.account_number,
         bank_name: accountForm.bank_name,
         branch_name: accountForm.branch_name || null,
         branch_id: accountForm.branch_id || null,
         current_balance: parseFloat(accountForm.current_balance) || 0,
+        opening_balance: parseFloat(accountForm.current_balance) || 0,
         currency: accountForm.currency,
         notes: accountForm.notes || null,
-        is_active: true,
+        status: 'active',
       } as never)
 
       if (error) throw error
@@ -169,7 +170,7 @@ export default function BankAccounts() {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
       setShowAccountDialog(false)
       setAccountForm({
-        account_name: '',
+        account_holder: '',
         account_number: '',
         bank_name: '',
         branch_name: '',
@@ -240,7 +241,7 @@ export default function BankAccounts() {
             amount: amount,
             balance_after: relatedBalance,
             reference_number: transactionForm.reference_number || null,
-            description: `تحويل من ${selectedAccount.account_name}`,
+            description: `تحويل من ${selectedAccount.account_holder}`,
             related_account_id: selectedAccount.id,
           } as never)
 
@@ -323,8 +324,8 @@ export default function BankAccounts() {
             <div>
               <label className="text-sm font-medium">اسم الحساب *</label>
               <Input
-                value={accountForm.account_name}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setAccountForm({...accountForm, account_name: e.target.value})}
+                value={accountForm.account_holder}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setAccountForm({...accountForm, account_holder: e.target.value})}
                 placeholder="مثال: حساب جاري"
               />
             </div>
@@ -394,7 +395,7 @@ export default function BankAccounts() {
             <Button variant="outline" onClick={() => setShowAccountDialog(false)} className="w-full sm:w-auto">إلغاء</Button>
             <Button
               onClick={() => createAccountMutation.mutate()}
-              disabled={!accountForm.account_name || !accountForm.account_number || !accountForm.bank_name || !accountForm.branch_id || createAccountMutation.isPending}
+              disabled={!accountForm.account_holder || !accountForm.account_number || !accountForm.bank_name || !accountForm.branch_id || createAccountMutation.isPending}
               className="w-full sm:w-auto"
             >
               {createAccountMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
@@ -411,7 +412,7 @@ export default function BankAccounts() {
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <p className="text-sm font-medium mb-2">الحساب: {selectedAccount?.account_name} - {selectedAccount?.bank_name}</p>
+              <p className="text-sm font-medium mb-2">الحساب: {selectedAccount?.account_holder} - {selectedAccount?.bank_name}</p>
               <p className="text-sm text-muted-foreground">الرصيد الحالي: {formatCurrency(selectedAccount?.current_balance || 0)}</p>
             </div>
             <div>
@@ -454,7 +455,7 @@ export default function BankAccounts() {
                 >
                   <option value="">اختر الحساب</option>
                   {accounts?.filter(acc => acc.id !== selectedAccount?.id).map((acc) => (
-                    <option key={acc.id} value={acc.id}>{acc.account_name} - {acc.bank_name}</option>
+                    <option key={acc.id} value={acc.id}>{acc.account_holder} - {acc.bank_name}</option>
                   ))}
                 </select>
               </div>
@@ -497,7 +498,7 @@ export default function BankAccounts() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 sm:p-4 bg-muted rounded-md">
-              <p className="font-bold text-sm sm:text-base">{selectedAccount?.account_name}</p>
+              <p className="font-bold text-sm sm:text-base">{selectedAccount?.account_holder}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">{selectedAccount?.bank_name} - {selectedAccount?.account_number}</p>
               <p className="text-sm sm:text-base font-bold mt-2">الرصيد الحالي: {formatCurrency(selectedAccount?.current_balance || 0)}</p>
             </div>
@@ -644,7 +645,7 @@ export default function BankAccounts() {
                   <tbody>
                     {accounts.map((account) => (
                       <tr key={account.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-medium">{account.account_name}</td>
+                        <td className="py-3 px-2 font-medium">{account.account_holder}</td>
                         <td className="py-3 px-2">{account.bank_name}</td>
                         <td className="py-3 px-2 font-mono text-sm">{account.account_number}</td>
                         <td className="py-3 px-2">{account.branch?.name_ar || '-'}</td>
@@ -686,7 +687,7 @@ export default function BankAccounts() {
                   <Card key={account.id} className="p-4">
                     <div className="space-y-3">
                       <div>
-                        <p className="font-bold text-base">{account.account_name}</p>
+                        <p className="font-bold text-base">{account.account_holder}</p>
                         <p className="text-sm text-muted-foreground">{account.bank_name}</p>
                         <p className="text-xs font-mono text-muted-foreground mt-1">{account.account_number}</p>
                         {account.branch?.name_ar && (
