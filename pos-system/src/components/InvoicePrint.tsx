@@ -74,7 +74,7 @@ export function printInvoice(data: InvoiceData) {
         <div class="info-row"><span>التاريخ:</span><span>${formatDate(data.invoice_date)}</span></div>
         ${data.customer_name ? `<div class="info-row"><span>العميل:</span><span>${data.customer_name}</span></div>` : ''}
         ${data.customer_phone ? `<div class="info-row"><span>الهاتف:</span><span>${data.customer_phone}</span></div>` : ''}
-        <div class="info-row"><span>الكاشير:</span><span>${data.cashier_name}</span></div>
+        <div class="info-row"><span>البائع:</span><span>${data.cashier_name}</span></div>
       </div>
 
       <table class="items">

@@ -234,8 +234,29 @@ export default function POS() {
 
       if (!userId) throw new Error('Missing user')
 
-      // Generate invoice number
-      const invoiceNumber = `INV-${Date.now()}`
+      // Get branch name for invoice number
+      const branchName = selectedBranch?.name_ar || 'فرع'
+      
+      // Get last invoice number for this branch
+      const { data: lastSale } = await supabase
+        .from('sales')
+        .select('invoice_number')
+        .eq('branch_id', selectedBranchId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      
+      // Extract number from last invoice and increment
+      let nextNumber = 1
+      if (lastSale && (lastSale as any).invoice_number) {
+        const match = (lastSale as any).invoice_number.match(/-(\d+)$/)
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1
+        }
+      }
+      
+      // Generate invoice number: "المحل-01" or "الشركة-01"
+      const invoiceNumber = `${branchName}-${String(nextNumber).padStart(2, '0')}`
 
       // Prepare mixed payment amounts
       let cash_amount = null
