@@ -95,7 +95,9 @@ export default function Sidebar() {
           <img src="/el-fagr/logo.jpg" alt={companyName} className="w-12 h-12 rounded-lg object-contain" />
           <div>
             <h1 className="text-xl font-bold text-primary">{companyName}</h1>
-            <p className="text-sm text-muted-foreground">{user?.branch?.name_ar || 'المخزن الرئيسي'}</p>
+            {user?.branch?.name_ar && (
+              <p className="text-sm text-muted-foreground">{user.branch.name_ar}</p>
+            )}
           </div>
         </div>
       </div>
