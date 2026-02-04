@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { Building2, Users, Tag, Boxes, Palette, Settings as SettingsIcon, Save, Plus } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { Building2, Users, Tag, Boxes, Palette, Settings as SettingsIcon, Save, Plus, Trash2 } from 'lucide-react'
 
 interface SettingRow { id: string; key: string; value?: string; description?: string }
 interface BranchRow { id: string; code: string; name_ar: string; branch_type?: string; phone?: string; status?: string }
@@ -251,6 +252,10 @@ function UsersSettings() {
     email: '',
   })
   const queryClient = useQueryClient()
+  const { user: currentUser } = useAuthStore()
+  
+  // Check if current user is system admin
+  const isSystemAdmin = currentUser?.role?.name_ar === 'مدير النظام' || currentUser?.role?.name === 'مدير النظام'
 
   const { data: users } = useQuery<UserRow[]>({
     queryKey: ['users-settings'],
@@ -317,6 +322,25 @@ function UsersSettings() {
     },
     onError: (err) => alert('خطأ: ' + err.message),
   })
+
+  // Delete user mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.from('users').delete().eq('id', userId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-settings'] })
+      alert('تم حذف المستخدم بنجاح!')
+    },
+    onError: (err) => alert('خطأ: ' + err.message),
+  })
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    if (window.confirm(`هل أنت متأكد من حذف المستخدم "${userName}"؟`)) {
+      deleteMutation.mutate(userId)
+    }
+  }
 
   return (
     <Card>
@@ -444,6 +468,7 @@ function UsersSettings() {
                 <th className="text-right py-2 px-1 sm:px-2">الدور</th>
                 <th className="text-right py-2 px-1 sm:px-2">الفرع</th>
                 <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
+                {isSystemAdmin && <th className="text-right py-2 px-1 sm:px-2">إجراءات</th>}
               </tr>
             </thead>
             <tbody>
@@ -459,6 +484,19 @@ function UsersSettings() {
                       {user.status === 'active' ? 'نشط' : 'غير نشط'}
                     </span>
                   </td>
+                  {isSystemAdmin && (
+                    <td className="py-2 px-1 sm:px-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteUser(user.id, user.full_name)}
+                        disabled={deleteMutation.isPending}
+                        title="حذف"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -493,6 +531,20 @@ function UsersSettings() {
                     <span className="font-medium">{user.branch?.name_ar || 'الكل'}</span>
                   </div>
                 </div>
+                {isSystemAdmin && (
+                  <div className="pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleDeleteUser(user.id, user.full_name)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+                      حذف المستخدم
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
           ))}

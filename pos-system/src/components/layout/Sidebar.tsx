@@ -55,14 +55,14 @@ export default function Sidebar() {
   const filteredMenuItems = menuItems.filter(item => {
     const userRole = user?.role?.name_ar || user?.role?.name
     
-    // أمين مخزن - يرى فقط المخزون وجرد المخزون
-    if (userRole === 'أمين مخزن') {
+    // موظف مخزن - يرى فقط المخزون وجرد المخزون
+    if (userRole === 'موظف مخزن') {
       const allowedPaths = ['/inventory', '/stock-count']
       return allowedPaths.includes(item.path)
     }
     
-    // مندوب مبيعات - يرى فقط المنتجات
-    if (userRole === 'مندوب مبيعات') {
+    // موظف مبيعات - يرى فقط المنتجات
+    if (userRole === 'موظف مبيعات') {
       const allowedPaths = ['/products']
       return allowedPaths.includes(item.path)
     }

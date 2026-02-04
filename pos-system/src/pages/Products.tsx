@@ -47,7 +47,7 @@ export default function Products() {
   const { user } = useAuthStore()
   
   // Check if user is sales representative
-  const isSalesRep = user?.role?.name_ar === 'مندوب مبيعات' || user?.role?.name === 'مندوب مبيعات'
+  const isSalesRep = user?.role?.name_ar === 'موظف مبيعات' || user?.role?.name === 'موظف مبيعات'
 
   const { data: productsData, isLoading } = useQuery<{ products: ProductRow[]; totalCount: number; totalPages: number }>({
     queryKey: ['products', search, currentPage],

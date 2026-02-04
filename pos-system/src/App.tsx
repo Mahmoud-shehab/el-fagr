@@ -28,13 +28,13 @@ function HomeRedirect() {
   const { user } = useAuthStore()
   const userRole = user?.role?.name_ar || user?.role?.name
   
-  // أمين مخزن -> المخزون
-  if (userRole === 'أمين مخزن') {
+  // موظف مخزن -> المخزون
+  if (userRole === 'موظف مخزن') {
     return <Navigate to="/inventory" replace />
   }
   
-  // مندوب مبيعات -> المنتجات
-  if (userRole === 'مندوب مبيعات') {
+  // موظف مبيعات -> المنتجات
+  if (userRole === 'موظف مبيعات') {
     return <Navigate to="/products" replace />
   }
   
@@ -61,38 +61,38 @@ function App() {
         <Route path="pos" element={<POS />} />
         <Route path="products" element={<Products />} />
         <Route path="customers" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Customers />
           </ProtectedRoute>
         } />
         <Route path="sales" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Sales />
           </ProtectedRoute>
         } />
         <Route path="inventory" element={<Inventory />} />
         <Route path="purchases" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Purchases />
           </ProtectedRoute>
         } />
         <Route path="suppliers" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Suppliers />
           </ProtectedRoute>
         } />
         <Route path="returns" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Returns />
           </ProtectedRoute>
         } />
         <Route path="transfers" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Transfers />
           </ProtectedRoute>
         } />
         <Route path="damaged" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Damaged />
           </ProtectedRoute>
         } />
@@ -107,28 +107,28 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="customer-statement" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <CustomerStatement />
           </ProtectedRoute>
         } />
         <Route path="stock-count" element={<StockCount />} />
         <Route path="expenses" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Expenses />
           </ProtectedRoute>
         } />
         <Route path="expense-categories" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <ExpenseCategories />
           </ProtectedRoute>
         } />
         <Route path="bank-accounts" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <BankAccounts />
           </ProtectedRoute>
         } />
         <Route path="settings" element={
-          <ProtectedRoute restrictedRoles={['أمين مخزن', 'مندوب مبيعات']}>
+          <ProtectedRoute restrictedRoles={['موظف مخزن', 'موظف مبيعات']}>
             <Settings />
           </ProtectedRoute>
         } />
