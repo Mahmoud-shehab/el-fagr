@@ -55,7 +55,6 @@ export default function Customers() {
     phone: '',
     email: '',
     address: '',
-    credit_limit: 0,
     branch_id: '',
     tax_card_number: '',
   })
@@ -183,7 +182,6 @@ export default function Customers() {
             email: formData.email || null,
             address: formData.address || null,
             tax_card_number: formData.tax_card_number || null,
-            credit_limit: formData.credit_limit,
             branch_id: formData.branch_id || null,
           } as never)
           .eq('id', editingCustomer.id)
@@ -199,7 +197,6 @@ export default function Customers() {
           email: formData.email || null,
           address: formData.address || null,
           tax_card_number: formData.tax_card_number || null,
-          credit_limit: formData.credit_limit,
           branch_id: formData.branch_id || null,
           current_balance: 0,
           status: 'active',
@@ -211,7 +208,7 @@ export default function Customers() {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
       setShowDialog(false)
       setEditingCustomer(null)
-      setFormData({ name_ar: '', phone: '', email: '', address: '', credit_limit: 0, branch_id: '', tax_card_number: '' })
+      setFormData({ name_ar: '', phone: '', email: '', address: '', branch_id: '', tax_card_number: '' })
       alert(editingCustomer ? 'تم تحديث العميل بنجاح!' : 'تم إضافة العميل بنجاح!')
     },
     onError: (err) => alert('خطأ: ' + err.message),
@@ -224,7 +221,6 @@ export default function Customers() {
       phone: customer.phone,
       email: customer.email || '',
       address: customer.address || '',
-      credit_limit: customer.credit_limit || 0,
       branch_id: customer.branch_id || '',
       tax_card_number: customer.tax_card_number || '',
     })
@@ -234,7 +230,7 @@ export default function Customers() {
   const handleCloseDialog = () => {
     setShowDialog(false)
     setEditingCustomer(null)
-    setFormData({ name_ar: '', phone: '', email: '', address: '', credit_limit: 0, branch_id: '', tax_card_number: '' })
+    setFormData({ name_ar: '', phone: '', email: '', address: '', branch_id: '', tax_card_number: '' })
   }
 
   return (
@@ -285,12 +281,6 @@ export default function Customers() {
               <Input id="tax_card" value={formData.tax_card_number}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, tax_card_number: e.target.value})}
                 placeholder="أدخل رقم البطاقة الضريبية" />
-            </div>
-            <div>
-              <label htmlFor="credit" className="text-sm font-medium">حد الائتمان</label>
-              <Input id="credit" type="number" value={formData.credit_limit}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})}
-                placeholder="0" />
             </div>
             <div>
               <label htmlFor="branch" className="text-sm font-medium">الفرع *</label>
@@ -368,7 +358,6 @@ export default function Customers() {
                     <th className="text-right py-3 px-2">الرصيد</th>
                     <th className="text-right py-3 px-2">المستحق</th>
                     <th className="text-right py-3 px-2">أيام التأخير</th>
-                    <th className="text-right py-3 px-2">حد الائتمان</th>
                     <th className="text-right py-3 px-2">الحالة</th>
                     <th className="text-right py-3 px-2">إجراءات</th>
                   </tr>
@@ -409,7 +398,6 @@ export default function Customers() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-2">{formatCurrency(customer.credit_limit || 0)}</td>
                       <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs ${statusLabels[customer.status || 'active'].color}`}>
                           {statusLabels[customer.status || 'active'].label}
@@ -486,10 +474,6 @@ export default function Customers() {
                           <span className="font-bold text-destructive">{customer.daysOverdue} يوم</span>
                         </div>
                       )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">حد الائتمان:</span>
-                        <span className="font-medium">{formatCurrency(customer.credit_limit || 0)}</span>
-                      </div>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(customer)}>
