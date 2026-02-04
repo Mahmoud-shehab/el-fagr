@@ -709,15 +709,39 @@ function CategoriesSettings() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Try to delete
       const { error } = await supabase
         .from('categories')
         .delete()
+        .eq('id', id)
+      
+      if (error) {
+        // Check if it's a foreign key constraint error
+        if (error.message.includes('foreign key') || error.message.includes('violates')) {
+          throw new Error('لا يمكن حذف هذا التصنيف لأنه مستخدم في منتجات موجودة. يمكنك تعطيله بدلاً من حذفه.')
+        }
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories-settings'] })
+      alert('تم حذف التصنيف بنجاح!')
+    },
+    onError: (error: Error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('categories')
+        .update({ is_active: !isActive } as never)
         .eq('id', id)
       if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories-settings'] })
-      alert('تم حذف التصنيف بنجاح!')
     },
     onError: (error) => {
       alert('حدث خطأ: ' + error.message)
@@ -779,6 +803,14 @@ function CategoriesSettings() {
                     </td>
                     <td className="py-2 px-1 sm:px-2">
                       <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => toggleActiveMutation.mutate({ id: cat.id, isActive: cat.is_active || false })}
+                          title={cat.is_active ? 'تعطيل' : 'تفعيل'}
+                        >
+                          {cat.is_active ? '🔴' : '🟢'}
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(cat)}>
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -806,6 +838,14 @@ function CategoriesSettings() {
                     </span>
                   </div>
                   <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => toggleActiveMutation.mutate({ id: cat.id, isActive: cat.is_active || false })}
+                      title={cat.is_active ? 'تعطيل' : 'تفعيل'}
+                    >
+                      {cat.is_active ? '🔴' : '🟢'}
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(cat)}>
                       <Edit className="h-3 w-3" />
                     </Button>
