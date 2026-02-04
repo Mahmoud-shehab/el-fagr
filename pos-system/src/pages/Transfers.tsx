@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Search, Eye, ArrowLeftRight, X, Printer } from 'lucide-react'
+import TransferPrint from '@/components/TransferPrint'
 
 interface TransferRow {
   id: string
@@ -40,6 +41,7 @@ export default function Transfers() {
   const [search, setSearch] = useState('')
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
+  const [showPrintDialog, setShowPrintDialog] = useState(false)
   const [selectedTransfer, setSelectedTransfer] = useState<TransferRow | null>(null)
   const [fromBranch, setFromBranch] = useState('')
   const [toBranch, setToBranch] = useState('')
@@ -206,12 +208,8 @@ export default function Transfers() {
   }
 
   const handlePrintTransfer = (transfer: TransferRow) => {
-    // Open print dialog with transfer details
     setSelectedTransfer(transfer)
-    // Wait for data to load then print
-    setTimeout(() => {
-      window.print()
-    }, 500)
+    setShowPrintDialog(true)
   }
 
   return (
@@ -376,6 +374,14 @@ export default function Transfers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Print Component */}
+      {showPrintDialog && selectedTransfer && (
+        <TransferPrint 
+          transferId={selectedTransfer.id} 
+          onClose={() => setShowPrintDialog(false)} 
+        />
+      )}
 
       <Card>
         <CardHeader>
