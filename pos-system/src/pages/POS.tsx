@@ -57,6 +57,9 @@ export default function POS() {
   const [taxRate, setTaxRate] = useState(14)
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
   const [showBranchSelect, setShowBranchSelect] = useState(false)
+  const [showMixedPayment, setShowMixedPayment] = useState(false)
+  const [cashAmount, setCashAmount] = useState('')
+  const [cardAmount, setCardAmount] = useState('')
   const queryClient = useQueryClient()
 
   // Fetch branches (outlets only)
@@ -215,6 +218,9 @@ export default function POS() {
     setDueDate('')
     setHasTax(false)
     setTaxRate(14)
+    setShowMixedPayment(false)
+    setCashAmount('')
+    setCardAmount('')
   }
 
   // Create sale mutation
@@ -230,6 +236,19 @@ export default function POS() {
 
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}`
+
+      // Prepare mixed payment amounts
+      let cash_amount = null
+      let card_amount = null
+      if (paymentMethod === 'mixed') {
+        cash_amount = parseFloat(cashAmount) || 0
+        card_amount = parseFloat(cardAmount) || 0
+        
+        // Validate
+        if (Math.abs((cash_amount + card_amount) - total) > 0.01) {
+          throw new Error('المبلغ النقدي + الفيزا يجب أن يساوي الإجمالي')
+        }
+      }
 
       // Create sale
       const saleData = {
@@ -248,6 +267,8 @@ export default function POS() {
         paid_amount: paid,
         remaining_amount: remaining > 0 ? remaining : 0,
         payment_method: paymentMethod,
+        cash_amount: cash_amount,
+        card_amount: card_amount,
         status: remaining <= 0 ? 'paid' : 'partially_paid',
         due_date: paymentMethod === 'credit' && dueDate ? dueDate : null,
         has_tax: hasTax,
@@ -286,10 +307,10 @@ export default function POS() {
           .single()
         
         if (currentInv) {
-          const newQuantity = (currentInv.quantity || 0) - item.quantity
+          const newQuantity = ((currentInv as { quantity: number }).quantity || 0) - item.quantity
           const { error: invError } = await supabase
             .from('inventory')
-            .update({ quantity: newQuantity })
+            .update({ quantity: newQuantity } as never)
             .eq('product_id', item.product.id)
             .eq('branch_id', selectedBranchId)
           
@@ -630,10 +651,76 @@ export default function POS() {
             </div>
           )}
 
+          {/* Mixed Payment Section */}
+          {showMixedPayment && (
+            <div className="border rounded-lg p-3 space-y-2 bg-blue-50">
+              <p className="text-sm font-medium text-center">دفع مختلط (نقدي + فيزا)</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm whitespace-nowrap">نقدي</span>
+                <Input
+                  type="number"
+                  value={cashAmount}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const cash = parseFloat(e.target.value) || 0
+                    setCashAmount(e.target.value)
+                    // Auto-calculate card amount
+                    const card = total - cash
+                    setCardAmount(card > 0 ? card.toString() : '0')
+                  }}
+                  className="flex-1 h-8 sm:h-10 text-base"
+                  placeholder="0"
+                  min={0}
+                  max={total}
+                />
+                <span className="text-xs">ج.م</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm whitespace-nowrap">فيزا</span>
+                <Input
+                  type="number"
+                  value={cardAmount}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const card = parseFloat(e.target.value) || 0
+                    setCardAmount(e.target.value)
+                    // Auto-calculate cash amount
+                    const cash = total - card
+                    setCashAmount(cash > 0 ? cash.toString() : '0')
+                  }}
+                  className="flex-1 h-8 sm:h-10 text-base"
+                  placeholder="0"
+                  min={0}
+                  max={total}
+                />
+                <span className="text-xs">ج.م</span>
+              </div>
+              {/* Validation Message */}
+              {(() => {
+                const cash = parseFloat(cashAmount) || 0
+                const card = parseFloat(cardAmount) || 0
+                const sum = cash + card
+                if (Math.abs(sum - total) > 0.01) {
+                  return (
+                    <p className="text-xs text-destructive text-center">
+                      المجموع ({formatCurrency(sum)}) يجب أن يساوي الإجمالي ({formatCurrency(total)})
+                    </p>
+                  )
+                }
+                return (
+                  <p className="text-xs text-green-600 text-center">
+                    ✓ المبلغ صحيح
+                  </p>
+                )
+              })()}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2 pt-2">
             <Button 
               className="h-10 sm:h-12 text-sm sm:text-base" 
-              onClick={() => createSale.mutate('cash')}
+              onClick={() => {
+                setShowMixedPayment(false)
+                createSale.mutate('cash')
+              }}
               disabled={cart.length === 0 || createSale.isPending}
             >
               <Banknote className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
@@ -642,13 +729,45 @@ export default function POS() {
             <Button 
               variant="outline" 
               className="h-10 sm:h-12 text-sm sm:text-base"
-              onClick={() => createSale.mutate('credit')}
+              onClick={() => {
+                setShowMixedPayment(false)
+                createSale.mutate('credit')
+              }}
               disabled={cart.length === 0 || !selectedCustomer || createSale.isPending}
             >
               <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
               آجل
             </Button>
           </div>
+          
+          {/* Mixed Payment Button */}
+          <Button 
+            variant="secondary"
+            className="w-full h-10 sm:h-12 text-sm sm:text-base"
+            onClick={() => {
+              if (showMixedPayment) {
+                // Validate and submit
+                const cash = parseFloat(cashAmount) || 0
+                const card = parseFloat(cardAmount) || 0
+                const sum = cash + card
+                if (Math.abs(sum - total) > 0.01) {
+                  alert('المبلغ النقدي + الفيزا يجب أن يساوي الإجمالي')
+                  return
+                }
+                createSale.mutate('mixed')
+              } else {
+                // Show mixed payment inputs
+                setShowMixedPayment(true)
+                // Initialize with half/half
+                const half = (total / 2).toFixed(2)
+                setCashAmount(half)
+                setCardAmount(half)
+              }
+            }}
+            disabled={cart.length === 0 || createSale.isPending}
+          >
+            {showMixedPayment ? 'تأكيد الدفع المختلط' : 'دفع مختلط (نقدي + فيزا)'}
+          </Button>
         </div>
       </Card>
     </div>

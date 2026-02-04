@@ -21,6 +21,8 @@ interface InvoiceData {
   paid_amount: number
   remaining_amount: number
   payment_method: string
+  cash_amount?: number
+  card_amount?: number
   cashier_name: string
   branch_name: string
 }
@@ -115,7 +117,25 @@ export function printInvoice(data: InvoiceData) {
             <span>${formatCurrency(data.customer_previous_balance + (data.remaining_amount || 0))}</span>
           </div>
         ` : ''}
-        <div class="total-row"><span>طريقة الدفع:</span><span>${data.payment_method === 'cash' ? 'نقدي' : 'آجل'}</span></div>
+        <div class="total-row">
+          <span>طريقة الدفع:</span>
+          <span>${
+            data.payment_method === 'cash' ? 'نقدي' : 
+            data.payment_method === 'credit' ? 'آجل' : 
+            data.payment_method === 'mixed' ? 'مختلط (نقدي + فيزا)' : 
+            data.payment_method
+          }</span>
+        </div>
+        ${data.payment_method === 'mixed' && data.cash_amount !== undefined && data.card_amount !== undefined ? `
+          <div class="total-row" style="font-size: 11px; color: #666; padding-right: 10px;">
+            <span>• نقدي:</span>
+            <span>${formatCurrency(data.cash_amount)}</span>
+          </div>
+          <div class="total-row" style="font-size: 11px; color: #666; padding-right: 10px;">
+            <span>• فيزا:</span>
+            <span>${formatCurrency(data.card_amount)}</span>
+          </div>
+        ` : ''}
       </div>
 
       <div class="footer">
