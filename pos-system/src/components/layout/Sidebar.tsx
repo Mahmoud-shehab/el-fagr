@@ -51,6 +51,21 @@ export default function Sidebar() {
     fetchCompanyName()
   }, [])
 
+  // Filter menu items based on user role
+  const filteredMenuItems = menuItems.filter(item => {
+    const userRole = user?.role?.name_ar || user?.role?.name
+    
+    // Hide specific pages for محاسب and مدير فرع
+    if (userRole === 'محاسب' || userRole === 'مدير فرع') {
+      const hiddenPaths = ['/dashboard', '/partner-withdrawals', '/reports']
+      if (hiddenPaths.includes(item.path)) {
+        return false
+      }
+    }
+    
+    return true
+  })
+
   return (
     <>
       {/* Mobile Header with Logo - Only when sidebar is closed */}
@@ -101,7 +116,7 @@ export default function Sidebar() {
       </div>
       
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
