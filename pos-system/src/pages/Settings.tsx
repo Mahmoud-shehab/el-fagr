@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { Building2, Users, Tag, Boxes, Palette, Settings as SettingsIcon, Save, Plus, Trash2 } from 'lucide-react'
+import { Building2, Users, Tag, Boxes, Palette, Settings as SettingsIcon, Save, Plus, Trash2, Edit } from 'lucide-react'
 
 interface SettingRow { id: string; key: string; value?: string; description?: string }
 interface BranchRow { id: string; code: string; name_ar: string; branch_type?: string; phone?: string; status?: string }
-interface UserRow { id: string; employee_code: string; full_name: string; username: string; role?: { name_ar?: string }; branch?: { name_ar?: string }; status?: string }
+interface UserRow { id: string; employee_code: string; full_name: string; full_name_ar?: string; username: string; role_id?: string; branch_id?: string; phone?: string; email?: string; role?: { name_ar?: string }; branch?: { name_ar?: string }; status?: string }
 interface RoleRow { id: string; name_ar: string; name: string }
 interface CategoryRow { id: string; code: string; name_ar: string; is_active?: boolean }
 interface BrandRow { id: string; code: string; name: string; is_active?: boolean }
@@ -241,6 +241,7 @@ function BranchesSettings() {
 function UsersSettings() {
   const [showDialog, setShowDialog] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     employee_code: '',
     full_name: '',
@@ -293,24 +294,52 @@ function UsersSettings() {
       // Generate employee code if not provided
       const employeeCode = formData.employee_code || `EMP-${Date.now()}`
 
-      const { error } = await supabase.from('users').insert({
-        employee_code: employeeCode,
-        full_name: formData.full_name,
-        full_name_ar: formData.full_name_ar,
-        username: formData.username,
-        password_hash: formData.password, // Using password_hash column
-        role_id: formData.role_id,
-        branch_id: formData.branch_id || null,
-        phone: formData.phone || null,
-        email: formData.email || null,
-        status: 'active',
-      } as never)
+      if (editingId) {
+        // Update existing user
+        const updateData: any = {
+          employee_code: employeeCode,
+          full_name: formData.full_name,
+          full_name_ar: formData.full_name_ar,
+          username: formData.username,
+          role_id: formData.role_id,
+          branch_id: formData.branch_id || null,
+          phone: formData.phone || null,
+          email: formData.email || null,
+        }
+        
+        // Only update password if provided
+        if (formData.password) {
+          updateData.password_hash = formData.password
+        }
 
-      if (error) throw error
+        const { error } = await supabase
+          .from('users')
+          .update(updateData as never)
+          .eq('id', editingId)
+
+        if (error) throw error
+      } else {
+        // Create new user
+        const { error } = await supabase.from('users').insert({
+          employee_code: employeeCode,
+          full_name: formData.full_name,
+          full_name_ar: formData.full_name_ar,
+          username: formData.username,
+          password_hash: formData.password,
+          role_id: formData.role_id,
+          branch_id: formData.branch_id || null,
+          phone: formData.phone || null,
+          email: formData.email || null,
+          status: 'active',
+        } as never)
+
+        if (error) throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-settings'] })
       setShowDialog(false)
+      setEditingId(null)
       setFormData({
         employee_code: '',
         full_name: '',
@@ -322,7 +351,7 @@ function UsersSettings() {
         phone: '',
         email: '',
       })
-      alert('تم إضافة المستخدم بنجاح!')
+      alert(editingId ? 'تم تحديث المستخدم بنجاح!' : 'تم إضافة المستخدم بنجاح!')
     },
     onError: (err) => alert('خطأ: ' + err.message),
   })
@@ -349,6 +378,38 @@ function UsersSettings() {
     }
   }
 
+  const handleEditUser = (user: UserRow) => {
+    setEditingId(user.id)
+    setFormData({
+      employee_code: user.employee_code,
+      full_name: user.full_name,
+      full_name_ar: user.full_name_ar || '',
+      username: user.username,
+      password: '', // Don't show password
+      role_id: user.role_id || '',
+      branch_id: user.branch_id || '',
+      phone: user.phone || '',
+      email: user.email || '',
+    })
+    setShowDialog(true)
+  }
+
+  const handleNewUser = () => {
+    setEditingId(null)
+    setFormData({
+      employee_code: '',
+      full_name: '',
+      full_name_ar: '',
+      username: '',
+      password: '',
+      role_id: '',
+      branch_id: '',
+      phone: '',
+      email: '',
+    })
+    setShowDialog(true)
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -365,7 +426,7 @@ function UsersSettings() {
               <span>عرض المعطلين</span>
             </label>
           )}
-          <Button size="sm" onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
+          <Button size="sm" onClick={handleNewUser} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 ml-2" />
             إضافة مستخدم
           </Button>
@@ -376,7 +437,7 @@ function UsersSettings() {
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg">إضافة مستخدم جديد</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">{editingId ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -412,12 +473,12 @@ function UsersSettings() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">كلمة المرور *</label>
+                <label className="text-sm font-medium">كلمة المرور {!editingId && '*'}</label>
                 <Input
                   type="password"
                   value={formData.password}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, password: e.target.value})}
-                  placeholder="********"
+                  placeholder={editingId ? "اتركه فارغاً إذا لم ترد التغيير" : "********"}
                 />
               </div>
               <div>
@@ -468,7 +529,7 @@ function UsersSettings() {
               <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">إلغاء</Button>
               <Button
                 onClick={() => createMutation.mutate()}
-                disabled={!formData.full_name || !formData.full_name_ar || !formData.username || !formData.password || !formData.role_id || createMutation.isPending}
+                disabled={!formData.full_name || !formData.full_name_ar || !formData.username || (!editingId && !formData.password) || !formData.role_id || createMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
@@ -506,15 +567,25 @@ function UsersSettings() {
                   </td>
                   {isSystemAdmin && (
                     <td className="py-2 px-1 sm:px-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteUser(user.id, user.full_name)}
-                        disabled={deleteMutation.isPending || user.status === 'inactive'}
-                        title={user.status === 'inactive' ? 'معطل' : 'تعطيل'}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditUser(user)}
+                          title="تعديل"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteUser(user.id, user.full_name)}
+                          disabled={deleteMutation.isPending || user.status === 'inactive'}
+                          title={user.status === 'inactive' ? 'معطل' : 'تعطيل'}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -552,16 +623,25 @@ function UsersSettings() {
                   </div>
                 </div>
                 {isSystemAdmin && (
-                  <div className="pt-2 border-t">
+                  <div className="pt-2 border-t flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full"
+                      className="flex-1"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      <Edit className="h-4 w-4 ml-2" />
+                      تعديل
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
                       onClick={() => handleDeleteUser(user.id, user.full_name)}
                       disabled={deleteMutation.isPending || user.status === 'inactive'}
                     >
                       <Trash2 className="h-4 w-4 ml-2 text-destructive" />
-                      {user.status === 'inactive' ? 'معطل' : 'تعطيل المستخدم'}
+                      {user.status === 'inactive' ? 'معطل' : 'تعطيل'}
                     </Button>
                   </div>
                 )}
