@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import { Plus, Building2, ArrowUpCircle, ArrowDownCircle, Calendar } from 'lucide-react'
 
 interface BankAccountRow {
@@ -14,10 +15,18 @@ interface BankAccountRow {
   account_number: string
   bank_name: string
   branch_name?: string
+  branch_id?: string
   current_balance: number
   currency: string
   is_active: boolean
   notes?: string
+  branch?: { name_ar: string }
+}
+
+interface BranchRow {
+  id: string
+  name_ar: string
+  code: string
 }
 
 interface BankTransactionRow {
@@ -41,12 +50,14 @@ export default function BankAccounts() {
   const [selectedAccount, setSelectedAccount] = useState<BankAccountRow | null>(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const { user } = useAuthStore()
 
   const [accountForm, setAccountForm] = useState({
     account_name: '',
     account_number: '',
     bank_name: '',
     branch_name: '',
+    branch_id: '',
     current_balance: '',
     currency: 'EGP',
     notes: '',
@@ -63,15 +74,35 @@ export default function BankAccounts() {
 
   const queryClient = useQueryClient()
 
-  // Fetch bank accounts
+  // Fetch branches
+  const { data: branches } = useQuery<BranchRow[]>({
+    queryKey: ['branches-for-bank-accounts'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('status', 'active')
+        .order('name_ar')
+      return (data || []) as BranchRow[]
+    },
+  })
+
+  // Fetch bank accounts - filter by user's branch if they are branch manager
   const { data: accounts, isLoading } = useQuery<BankAccountRow[]>({
     queryKey: ['bank-accounts'],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('bank_accounts')
-        .select('*')
+        .select('*, branch:branches(name_ar)')
         .eq('is_active', true)
         .order('account_name')
+      
+      // If user is branch manager, only show accounts for their branch
+      if (user?.branch_id) {
+        query = query.eq('branch_id', user.branch_id)
+      }
+
+      const { data } = await query
       return (data || []) as BankAccountRow[]
     },
   })
@@ -110,6 +141,7 @@ export default function BankAccounts() {
         account_number: accountForm.account_number,
         bank_name: accountForm.bank_name,
         branch_name: accountForm.branch_name || null,
+        branch_id: accountForm.branch_id || null,
         current_balance: parseFloat(accountForm.current_balance) || 0,
         currency: accountForm.currency,
         notes: accountForm.notes || null,
@@ -126,6 +158,7 @@ export default function BankAccounts() {
         account_number: '',
         bank_name: '',
         branch_name: '',
+        branch_id: '',
         current_balance: '',
         currency: 'EGP',
         notes: '',
@@ -297,12 +330,17 @@ export default function BankAccounts() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">الفرع</label>
-              <Input
-                value={accountForm.branch_name}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setAccountForm({...accountForm, branch_name: e.target.value})}
-                placeholder="اسم الفرع (اختياري)"
-              />
+              <label className="text-sm font-medium">الفرع *</label>
+              <select
+                value={accountForm.branch_id}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setAccountForm({...accountForm, branch_id: e.target.value})}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="">اختر الفرع</option>
+                {branches?.map((branch) => (
+                  <option key={branch.id} value={branch.id}>{branch.name_ar}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-sm font-medium">الرصيد الافتتاحي</label>
@@ -341,7 +379,7 @@ export default function BankAccounts() {
             <Button variant="outline" onClick={() => setShowAccountDialog(false)} className="w-full sm:w-auto">إلغاء</Button>
             <Button
               onClick={() => createAccountMutation.mutate()}
-              disabled={!accountForm.account_name || !accountForm.account_number || !accountForm.bank_name || createAccountMutation.isPending}
+              disabled={!accountForm.account_name || !accountForm.account_number || !accountForm.bank_name || !accountForm.branch_id || createAccountMutation.isPending}
               className="w-full sm:w-auto"
             >
               {createAccountMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
@@ -582,6 +620,7 @@ export default function BankAccounts() {
                       <th className="text-right py-3 px-2">اسم الحساب</th>
                       <th className="text-right py-3 px-2">البنك</th>
                       <th className="text-right py-3 px-2">رقم الحساب</th>
+                      <th className="text-right py-3 px-2">الفرع</th>
                       <th className="text-right py-3 px-2">الرصيد الحالي</th>
                       <th className="text-right py-3 px-2">العملة</th>
                       <th className="text-right py-3 px-2">الإجراءات</th>
@@ -593,6 +632,7 @@ export default function BankAccounts() {
                         <td className="py-3 px-2 font-medium">{account.account_name}</td>
                         <td className="py-3 px-2">{account.bank_name}</td>
                         <td className="py-3 px-2 font-mono text-sm">{account.account_number}</td>
+                        <td className="py-3 px-2">{account.branch?.name_ar || '-'}</td>
                         <td className="py-3 px-2 font-bold text-primary">{formatCurrency(account.current_balance || 0)}</td>
                         <td className="py-3 px-2">{account.currency}</td>
                         <td className="py-3 px-2">
@@ -634,6 +674,9 @@ export default function BankAccounts() {
                         <p className="font-bold text-base">{account.account_name}</p>
                         <p className="text-sm text-muted-foreground">{account.bank_name}</p>
                         <p className="text-xs font-mono text-muted-foreground mt-1">{account.account_number}</p>
+                        {account.branch?.name_ar && (
+                          <p className="text-xs text-muted-foreground mt-1">الفرع: {account.branch.name_ar}</p>
+                        )}
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t">
                         <div>
