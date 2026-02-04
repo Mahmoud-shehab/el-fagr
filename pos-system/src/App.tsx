@@ -19,6 +19,7 @@ import CustomerStatement from '@/pages/CustomerStatement'
 import StockCount from '@/pages/StockCount'
 import Expenses from '@/pages/Expenses'
 import ExpenseCategories from '@/pages/ExpenseCategories'
+import BankAccounts from '@/pages/BankAccounts'
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
         <Route path="stock-count" element={<StockCount />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="expense-categories" element={<ExpenseCategories />} />
+        <Route path="bank-accounts" element={<BankAccounts />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
