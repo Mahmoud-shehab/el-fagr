@@ -671,11 +671,10 @@ function CategoriesSettings() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingCategory) {
-        // Update
+        // Update - don't update code
         const { error } = await supabase
           .from('categories')
           .update({ 
-            code: formData.code,
             name: formData.name,
             name_ar: formData.name
           } as never)
@@ -833,7 +832,12 @@ function CategoriesSettings() {
                 value={formData.code}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 placeholder="مثال: INK أو CAT001"
+                disabled={!!editingCategory}
+                className={editingCategory ? 'bg-muted cursor-not-allowed' : ''}
               />
+              {editingCategory && (
+                <p className="text-xs text-muted-foreground mt-1">لا يمكن تعديل الكود بعد الإنشاء</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">الاسم</label>
