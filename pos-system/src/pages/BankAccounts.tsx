@@ -99,8 +99,8 @@ export default function BankAccounts() {
       
       const userRole = user?.role?.name_ar || user?.role?.name
       
-      // If user is branch manager, only show accounts for their branch
-      if (user?.branch_id) {
+      // If user is branch manager (مدير فرع), only show accounts for their branch
+      if (userRole === 'مدير فرع' && user?.branch_id) {
         query = query.eq('branch_id', user.branch_id)
       }
       // If user is accountant (محاسب), only show accounts for "الشركة" branch
@@ -116,6 +116,7 @@ export default function BankAccounts() {
           query = query.eq('branch_id', (companyBranch as { id: string }).id)
         }
       }
+      // System admin and general manager see all accounts (no filter)
 
       const { data } = await query
       return (data || []) as BankAccountRow[]
