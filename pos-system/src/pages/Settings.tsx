@@ -240,6 +240,7 @@ function BranchesSettings() {
 
 function UsersSettings() {
   const [showDialog, setShowDialog] = useState(false)
+  const [showInactive, setShowInactive] = useState(false)
   const [formData, setFormData] = useState({
     employee_code: '',
     full_name: '',
@@ -257,13 +258,16 @@ function UsersSettings() {
   // Check if current user is system admin
   const isSystemAdmin = currentUser?.role?.name_ar === 'مدير النظام' || currentUser?.role?.name === 'مدير النظام'
 
-  const { data: users } = useQuery<UserRow[]>({
+  const { data: allUsers } = useQuery<UserRow[]>({
     queryKey: ['users-settings'],
     queryFn: async () => {
       const { data } = await supabase.from('users').select('*, role:roles(name_ar), branch:branches(name_ar)').order('created_at')
       return (data || []) as UserRow[]
     },
   })
+
+  // Filter users based on showInactive toggle
+  const users = showInactive ? allUsers : allUsers?.filter(u => u.status === 'active')
 
   // Fetch roles
   const { data: roles } = useQuery<RoleRow[]>({
@@ -323,21 +327,24 @@ function UsersSettings() {
     onError: (err) => alert('خطأ: ' + err.message),
   })
 
-  // Delete user mutation
+  // Delete user mutation (soft delete - set status to inactive)
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.from('users').delete().eq('id', userId)
+      const { error } = await supabase
+        .from('users')
+        .update({ status: 'inactive' } as never)
+        .eq('id', userId)
       if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-settings'] })
-      alert('تم حذف المستخدم بنجاح!')
+      alert('تم تعطيل المستخدم بنجاح!')
     },
     onError: (err) => alert('خطأ: ' + err.message),
   })
 
   const handleDeleteUser = (userId: string, userName: string) => {
-    if (window.confirm(`هل أنت متأكد من حذف المستخدم "${userName}"؟`)) {
+    if (window.confirm(`هل أنت متأكد من تعطيل المستخدم "${userName}"؟\n\nملاحظة: سيتم تعطيل المستخدم وليس حذفه نهائياً من النظام.`)) {
       deleteMutation.mutate(userId)
     }
   }
@@ -346,10 +353,23 @@ function UsersSettings() {
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <CardTitle className="text-base sm:text-lg">المستخدمين</CardTitle>
-        <Button size="sm" onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 ml-2" />
-          إضافة مستخدم
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {isSystemAdmin && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                className="rounded"
+              />
+              <span>عرض المعطلين</span>
+            </label>
+          )}
+          <Button size="sm" onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة مستخدم
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {/* Add User Dialog */}
@@ -490,8 +510,8 @@ function UsersSettings() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteUser(user.id, user.full_name)}
-                        disabled={deleteMutation.isPending}
-                        title="حذف"
+                        disabled={deleteMutation.isPending || user.status === 'inactive'}
+                        title={user.status === 'inactive' ? 'معطل' : 'تعطيل'}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -538,10 +558,10 @@ function UsersSettings() {
                       size="sm"
                       className="w-full"
                       onClick={() => handleDeleteUser(user.id, user.full_name)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteMutation.isPending || user.status === 'inactive'}
                     >
                       <Trash2 className="h-4 w-4 ml-2 text-destructive" />
-                      حذف المستخدم
+                      {user.status === 'inactive' ? 'معطل' : 'تعطيل المستخدم'}
                     </Button>
                   </div>
                 )}
