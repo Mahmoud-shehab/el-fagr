@@ -289,7 +289,7 @@ function UsersSettings() {
         full_name: formData.full_name,
         full_name_ar: formData.full_name_ar,
         username: formData.username,
-        password: formData.password, // In production, this should be hashed
+        password_hash: formData.password, // Using password_hash column
         role_id: formData.role_id,
         branch_id: formData.branch_id || null,
         phone: formData.phone || null,
