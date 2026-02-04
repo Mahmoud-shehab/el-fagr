@@ -50,9 +50,11 @@ export default function POS() {
   const [customerSearch, setCustomerSearch] = useState('')
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [discount, setDiscount] = useState(0)
+  const [transportFee, setTransportFee] = useState(0)
   const [paidAmount, setPaidAmount] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [hasTax, setHasTax] = useState(false)
+  const [taxRate, setTaxRate] = useState(14)
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
   const [showBranchSelect, setShowBranchSelect] = useState(false)
   const queryClient = useQueryClient()
@@ -143,8 +145,8 @@ export default function POS() {
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
   const discountAmount = (subtotal * discount) / 100
-  const taxAmount = hasTax ? (subtotal - discountAmount) * 0.14 : 0 // 14% tax rate
-  const total = subtotal - discountAmount + taxAmount
+  const taxAmount = hasTax ? (subtotal - discountAmount + transportFee) * (taxRate / 100) : 0
+  const total = subtotal - discountAmount + transportFee + taxAmount
   const paid = parseFloat(paidAmount) || 0
   const remaining = total - paid
 
@@ -208,9 +210,11 @@ export default function POS() {
     setCart([])
     setSelectedCustomer(null)
     setDiscount(0)
+    setTransportFee(0)
     setPaidAmount('')
     setDueDate('')
     setHasTax(false)
+    setTaxRate(14)
   }
 
   // Create sale mutation
@@ -237,7 +241,9 @@ export default function POS() {
         customer_name: selectedCustomer?.name_ar || selectedCustomer?.name || null,
         subtotal,
         discount_amount: discountAmount,
+        transport_fee: transportFee,
         tax_amount: taxAmount,
+        tax_rate: hasTax ? taxRate : 0,
         total_amount: total,
         paid_amount: paid,
         remaining_amount: remaining > 0 ? remaining : 0,
@@ -522,6 +528,19 @@ export default function POS() {
             <span className="text-xs sm:text-sm text-muted-foreground">({formatCurrency(discountAmount)})</span>
           </div>
 
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm">نقل</span>
+            <Input
+              type="number"
+              value={transportFee}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setTransportFee(parseFloat(e.target.value) || 0)}
+              className="flex-1 h-7 sm:h-8 text-center text-xs sm:text-sm"
+              min={0}
+              placeholder="0"
+            />
+            <span className="text-xs sm:text-sm text-muted-foreground">ج.م</span>
+          </div>
+
           {/* Tax Radio Buttons */}
           <div className="flex items-center gap-2 sm:gap-4 py-2 border-y">
             <span className="text-xs sm:text-sm font-medium">الضريبة:</span>
@@ -548,10 +567,24 @@ export default function POS() {
           </div>
 
           {hasTax && (
-            <div className="flex justify-between text-xs sm:text-sm text-blue-600">
-              <span>الضريبة (14%)</span>
-              <span>{formatCurrency(taxAmount)}</span>
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm">نسبة الضريبة %</span>
+                <Input
+                  type="number"
+                  value={taxRate}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setTaxRate(parseFloat(e.target.value) || 14)}
+                  className="w-16 sm:w-20 h-7 sm:h-8 text-center text-xs sm:text-sm"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                />
+              </div>
+              <div className="flex justify-between text-xs sm:text-sm text-blue-600">
+                <span>الضريبة ({taxRate}%)</span>
+                <span>{formatCurrency(taxAmount)}</span>
+              </div>
+            </>
           )}
 
           <div className="flex justify-between text-base sm:text-lg font-bold border-t pt-2">
