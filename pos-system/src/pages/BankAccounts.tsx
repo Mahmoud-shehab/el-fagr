@@ -18,7 +18,7 @@ interface BankAccountRow {
   branch_id?: string
   current_balance: number
   currency: string
-  is_active: boolean
+  status: string
   notes?: string
   branch?: { name_ar: string }
 }
@@ -94,7 +94,7 @@ export default function BankAccounts() {
       let query = supabase
         .from('bank_accounts')
         .select('*, branch:branches(name_ar)')
-        .eq('is_active', true)
+        .eq('status', 'active')
         .order('account_holder')
       
       const userRole = user?.role?.name_ar || user?.role?.name
