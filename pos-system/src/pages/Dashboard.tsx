@@ -2,14 +2,36 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Package, Users, TrendingUp, AlertTriangle, ArrowLeftRight, Building2 } from 'lucide-react'
+import { Package, Users, TrendingUp, AlertTriangle, Building2 } from 'lucide-react'
 import { useState } from 'react'
+
+interface SaleRow {
+  id: string
+  invoice_number: string
+  customer_name?: string
+  total_amount?: number
+  customer?: { name?: string }
+}
+
+interface InventoryRow {
+  quantity: number
+  product?: {
+    name?: string
+    name_ar?: string
+    min_stock_level?: number
+  }
+}
+
+interface BranchRow {
+  id: string
+  name_ar: string
+}
 
 export default function Dashboard() {
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all')
 
   // Fetch branches
-  const { data: branches } = useQuery({
+  const { data: branches } = useQuery<BranchRow[]>({
     queryKey: ['dashboard-branches'],
     queryFn: async () => {
       const { data } = await supabase
@@ -17,7 +39,7 @@ export default function Dashboard() {
         .select('*')
         .eq('status', 'active')
         .order('name_ar')
-      return data || []
+      return (data || []) as BranchRow[]
     },
   })
 
@@ -78,7 +100,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">لوحة التحكم</h1>
-          <p className="text-sm text-muted-foreground">مرحباً بك في نظام الفجر الجديدة</p>
+          <p className="text-sm text-muted-foreground">مرحباً بك في نظام الفجر الجديد</p>
         </div>
         
         {/* Branch Filter */}
@@ -136,7 +158,7 @@ export default function Dashboard() {
 }
 
 function RecentSales() {
-  const { data: sales } = useQuery({
+  const { data: sales } = useQuery<SaleRow[]>({
     queryKey: ['recent-sales'],
     queryFn: async () => {
       const { data } = await supabase
@@ -144,7 +166,7 @@ function RecentSales() {
         .select('*, customer:customers(name)')
         .order('created_at', { ascending: false })
         .limit(5)
-      return data || []
+      return (data || []) as SaleRow[]
     },
   })
 
@@ -166,7 +188,7 @@ function RecentSales() {
 }
 
 function LowStockAlerts() {
-  const { data: lowStock } = useQuery({
+  const { data: lowStock } = useQuery<InventoryRow[]>({
     queryKey: ['low-stock'],
     queryFn: async () => {
       const { data } = await supabase
@@ -174,7 +196,7 @@ function LowStockAlerts() {
         .select('quantity, product:products(name, name_ar, min_stock_level)')
         .lt('quantity', 10)
         .limit(5)
-      return data || []
+      return (data || []) as InventoryRow[]
     },
   })
 
