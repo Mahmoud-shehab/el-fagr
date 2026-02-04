@@ -81,6 +81,8 @@ export default function Expenses() {
         .order('name_ar')
       return (data || []) as CategoryRow[]
     },
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
   })
 
   // Fetch expenses
