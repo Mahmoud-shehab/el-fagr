@@ -65,17 +65,17 @@ export default function Dashboard() {
         inventoryQuery,
       ])
       
-      const totalSales = sales.data?.reduce((sum, s) => sum + (s.total_amount || 0), 0) || 0
+      const totalSales = sales.data?.reduce((sum, s) => sum + ((s as any).total_amount || 0), 0) || 0
       
       // Calculate profit (simplified)
       let totalProfit = 0
       sales.data?.forEach(sale => {
-        const saleTotal = sale.total_amount || 0
+        const saleTotal = (sale as any).total_amount || 0
         // This is simplified - in real scenario, calculate from sale_items
         totalProfit += saleTotal * 0.2 // Assume 20% profit margin
       })
       
-      const lowStock = inventory.data?.filter(i => (i.quantity || 0) < 10).length || 0
+      const lowStock = inventory.data?.filter(i => ((i as any).quantity || 0) < 10).length || 0
       
       return {
         productsCount: products.count || 0,
