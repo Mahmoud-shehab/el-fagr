@@ -655,6 +655,11 @@ function UsersSettings() {
 }
 
 function CategoriesSettings() {
+  const [showDialog, setShowDialog] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null)
+  const [formData, setFormData] = useState({ name_ar: '' })
+  const queryClient = useQueryClient()
+
   const { data: categories } = useQuery<CategoryRow[]>({
     queryKey: ['categories-settings'],
     queryFn: async () => {
@@ -663,61 +668,185 @@ function CategoriesSettings() {
     },
   })
 
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (editingCategory) {
+        // Update
+        const { error } = await supabase
+          .from('categories')
+          .update({ name_ar: formData.name_ar } as never)
+          .eq('id', editingCategory.id)
+        if (error) throw error
+      } else {
+        // Insert
+        const code = `CAT${String(((categories?.length || 0) + 1)).padStart(3, '0')}`
+        const { error } = await supabase
+          .from('categories')
+          .insert({
+            code,
+            name_ar: formData.name_ar,
+            is_active: true,
+            sort_order: (categories?.length || 0) + 1
+          } as never)
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories-settings'] })
+      setShowDialog(false)
+      setEditingCategory(null)
+      setFormData({ name_ar: '' })
+      alert(editingCategory ? 'تم تحديث التصنيف بنجاح!' : 'تم إضافة التصنيف بنجاح!')
+    },
+    onError: (error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories-settings'] })
+      alert('تم حذف التصنيف بنجاح!')
+    },
+    onError: (error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const handleAdd = () => {
+    setEditingCategory(null)
+    setFormData({ name_ar: '' })
+    setShowDialog(true)
+  }
+
+  const handleEdit = (cat: CategoryRow) => {
+    setEditingCategory(cat)
+    setFormData({ name_ar: cat.name_ar })
+    setShowDialog(true)
+  }
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`هل أنت متأكد من حذف التصنيف "${name}"؟`)) {
+      deleteMutation.mutate(id)
+    }
+  }
+
   return (
-    <Card>
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <CardTitle className="text-base sm:text-lg">التصنيفات</CardTitle>
-        <Button size="sm" className="w-full sm:w-auto">إضافة تصنيف</Button>
-      </CardHeader>
-      <CardContent>
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
-                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
-                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories?.map((cat) => (
-                <tr key={cat.id} className="border-b">
-                  <td className="py-2 px-1 sm:px-2">{cat.code}</td>
-                  <td className="py-2 px-1 sm:px-2">{cat.name_ar}</td>
-                  <td className="py-2 px-1 sm:px-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+    <>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="text-base sm:text-lg">التصنيفات</CardTitle>
+          <Button size="sm" className="w-full sm:w-auto" onClick={handleAdd}>
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة تصنيف
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories?.map((cat) => (
+                  <tr key={cat.id} className="border-b">
+                    <td className="py-2 px-1 sm:px-2">{cat.code}</td>
+                    <td className="py-2 px-1 sm:px-2">{cat.name_ar}</td>
+                    <td className="py-2 px-1 sm:px-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {cat.is_active ? 'نشط' : 'غير نشط'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-1 sm:px-2">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(cat)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(cat.id, cat.name_ar)}>
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="block md:hidden space-y-3">
+            {categories?.map((cat) => (
+              <Card key={cat.id} className="p-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{cat.name_ar}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{cat.code}</p>
+                    <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                       {cat.is_active ? 'نشط' : 'غير نشط'}
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="block md:hidden space-y-3">
-          {categories?.map((cat) => (
-            <Card key={cat.id} className="p-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-sm">{cat.name_ar}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{cat.code}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(cat)}>
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(cat.id, cat.name_ar)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                  {cat.is_active ? 'نشط' : 'غير نشط'}
-                </span>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">الاسم بالعربي</label>
+              <Input
+                value={formData.name_ar}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name_ar: e.target.value })}
+                placeholder="مثال: أحبار الطابعات"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!formData.name_ar || saveMutation.isPending}>
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
 function BrandsSettings() {
+  const [showDialog, setShowDialog] = useState(false)
+  const [editingBrand, setEditingBrand] = useState<BrandRow | null>(null)
+  const [formData, setFormData] = useState({ name: '' })
+  const queryClient = useQueryClient()
+
   const { data: brands } = useQuery<BrandRow[]>({
     queryKey: ['brands-settings'],
     queryFn: async () => {
@@ -726,61 +855,184 @@ function BrandsSettings() {
     },
   })
 
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (editingBrand) {
+        // Update
+        const { error } = await supabase
+          .from('brands')
+          .update({ name: formData.name } as never)
+          .eq('id', editingBrand.id)
+        if (error) throw error
+      } else {
+        // Insert
+        const code = `BRD${String(((brands?.length || 0) + 1)).padStart(3, '0')}`
+        const { error } = await supabase
+          .from('brands')
+          .insert({
+            code,
+            name: formData.name,
+            is_active: true
+          } as never)
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands-settings'] })
+      setShowDialog(false)
+      setEditingBrand(null)
+      setFormData({ name: '' })
+      alert(editingBrand ? 'تم تحديث الماركة بنجاح!' : 'تم إضافة الماركة بنجاح!')
+    },
+    onError: (error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('brands')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands-settings'] })
+      alert('تم حذف الماركة بنجاح!')
+    },
+    onError: (error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const handleAdd = () => {
+    setEditingBrand(null)
+    setFormData({ name: '' })
+    setShowDialog(true)
+  }
+
+  const handleEdit = (brand: BrandRow) => {
+    setEditingBrand(brand)
+    setFormData({ name: brand.name })
+    setShowDialog(true)
+  }
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`هل أنت متأكد من حذف الماركة "${name}"؟`)) {
+      deleteMutation.mutate(id)
+    }
+  }
+
   return (
-    <Card>
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <CardTitle className="text-base sm:text-lg">الماركات</CardTitle>
-        <Button size="sm" className="w-full sm:w-auto">إضافة ماركة</Button>
-      </CardHeader>
-      <CardContent>
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
-                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
-                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {brands?.map((brand) => (
-                <tr key={brand.id} className="border-b">
-                  <td className="py-2 px-1 sm:px-2">{brand.code}</td>
-                  <td className="py-2 px-1 sm:px-2">{brand.name}</td>
-                  <td className="py-2 px-1 sm:px-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+    <>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="text-base sm:text-lg">الماركات</CardTitle>
+          <Button size="sm" className="w-full sm:w-auto" onClick={handleAdd}>
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة ماركة
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {brands?.map((brand) => (
+                  <tr key={brand.id} className="border-b">
+                    <td className="py-2 px-1 sm:px-2">{brand.code}</td>
+                    <td className="py-2 px-1 sm:px-2">{brand.name}</td>
+                    <td className="py-2 px-1 sm:px-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {brand.is_active ? 'نشط' : 'غير نشط'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-1 sm:px-2">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(brand)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(brand.id, brand.name)}>
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="block md:hidden space-y-3">
+            {brands?.map((brand) => (
+              <Card key={brand.id} className="p-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{brand.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{brand.code}</p>
+                    <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                       {brand.is_active ? 'نشط' : 'غير نشط'}
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="block md:hidden space-y-3">
-          {brands?.map((brand) => (
-            <Card key={brand.id} className="p-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-sm">{brand.name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{brand.code}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(brand)}>
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(brand.id, brand.name)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs ${brand.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                  {brand.is_active ? 'نشط' : 'غير نشط'}
-                </span>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingBrand ? 'تعديل الماركة' : 'إضافة ماركة جديدة'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">الاسم</label>
+              <Input
+                value={formData.name}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="مثال: HP"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!formData.name || saveMutation.isPending}>
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
 function UnitsSettings() {
+  const [showDialog, setShowDialog] = useState(false)
+  const [editingUnit, setEditingUnit] = useState<UnitRow | null>(null)
+  const [formData, setFormData] = useState({ name_ar: '' })
+  const queryClient = useQueryClient()
+
   const { data: units } = useQuery<UnitRow[]>({
     queryKey: ['units-settings'],
     queryFn: async () => {
@@ -789,56 +1041,174 @@ function UnitsSettings() {
     },
   })
 
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (editingUnit) {
+        // Update
+        const { error } = await supabase
+          .from('units')
+          .update({ name_ar: formData.name_ar } as never)
+          .eq('id', editingUnit.id)
+        if (error) throw error
+      } else {
+        // Insert
+        const code = `UNIT${String(((units?.length || 0) + 1)).padStart(3, '0')}`
+        const { error } = await supabase
+          .from('units')
+          .insert({
+            code,
+            name_ar: formData.name_ar,
+            is_active: true
+          } as never)
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['units-settings'] })
+      setShowDialog(false)
+      setEditingUnit(null)
+      setFormData({ name_ar: '' })
+      alert(editingUnit ? 'تم تحديث الوحدة بنجاح!' : 'تم إضافة الوحدة بنجاح!')
+    },
+    onError: (error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('units')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['units-settings'] })
+      alert('تم حذف الوحدة بنجاح!')
+    },
+    onError: (error) => {
+      alert('حدث خطأ: ' + error.message)
+    }
+  })
+
+  const handleAdd = () => {
+    setEditingUnit(null)
+    setFormData({ name_ar: '' })
+    setShowDialog(true)
+  }
+
+  const handleEdit = (unit: UnitRow) => {
+    setEditingUnit(unit)
+    setFormData({ name_ar: unit.name_ar })
+    setShowDialog(true)
+  }
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`هل أنت متأكد من حذف الوحدة "${name}"؟`)) {
+      deleteMutation.mutate(id)
+    }
+  }
+
   return (
-    <Card>
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <CardTitle className="text-base sm:text-lg">الوحدات</CardTitle>
-        <Button size="sm" className="w-full sm:w-auto">إضافة وحدة</Button>
-      </CardHeader>
-      <CardContent>
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-right py-2 px-1 sm:px-2">الكود</th>
-                <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
-                <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {units?.map((unit) => (
-                <tr key={unit.id} className="border-b">
-                  <td className="py-2 px-1 sm:px-2">{unit.code}</td>
-                  <td className="py-2 px-1 sm:px-2">{unit.name_ar}</td>
-                  <td className="py-2 px-1 sm:px-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+    <>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="text-base sm:text-lg">الوحدات</CardTitle>
+          <Button size="sm" className="w-full sm:w-auto" onClick={handleAdd}>
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة وحدة
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-right py-2 px-1 sm:px-2">الكود</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الاسم</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الحالة</th>
+                  <th className="text-right py-2 px-1 sm:px-2">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {units?.map((unit) => (
+                  <tr key={unit.id} className="border-b">
+                    <td className="py-2 px-1 sm:px-2">{unit.code}</td>
+                    <td className="py-2 px-1 sm:px-2">{unit.name_ar}</td>
+                    <td className="py-2 px-1 sm:px-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {unit.is_active ? 'نشط' : 'غير نشط'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-1 sm:px-2">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(unit)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(unit.id, unit.name_ar)}>
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="block md:hidden space-y-3">
+            {units?.map((unit) => (
+              <Card key={unit.id} className="p-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{unit.name_ar}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{unit.code}</p>
+                    <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                       {unit.is_active ? 'نشط' : 'غير نشط'}
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="block md:hidden space-y-3">
-          {units?.map((unit) => (
-            <Card key={unit.id} className="p-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-sm">{unit.name_ar}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{unit.code}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(unit)}>
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(unit.id, unit.name_ar)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                  {unit.is_active ? 'نشط' : 'غير نشط'}
-                </span>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingUnit ? 'تعديل الوحدة' : 'إضافة وحدة جديدة'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">الاسم بالعربي</label>
+              <Input
+                value={formData.name_ar}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name_ar: e.target.value })}
+                placeholder="مثال: قطعة"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>إلغاء</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!formData.name_ar || saveMutation.isPending}>
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
