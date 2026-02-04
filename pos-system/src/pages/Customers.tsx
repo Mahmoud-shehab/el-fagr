@@ -292,8 +292,8 @@ export default function Customers() {
               >
                 <option value="">اختر الفرع</option>
                 {branches?.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name_ar}
+                  <option key={(branch as any).id} value={(branch as any).id}>
+                    {(branch as any).name_ar}
                   </option>
                 ))}
               </select>
