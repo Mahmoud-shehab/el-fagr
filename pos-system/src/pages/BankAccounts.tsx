@@ -89,15 +89,14 @@ export default function BankAccounts() {
 
   // Fetch bank accounts - filter by user's branch if they are branch manager
   const { data: accounts, isLoading } = useQuery<BankAccountRow[]>({
-    queryKey: ['bank-accounts'],
+    queryKey: ['bank-accounts', user?.id],
     queryFn: async () => {
+      const userRole = user?.role?.name_ar || user?.role?.name
+      
       let query = supabase
         .from('bank_accounts')
         .select('*, branch:branches(name_ar)')
         .eq('status', 'active')
-        .order('account_holder')
-      
-      const userRole = user?.role?.name_ar || user?.role?.name
       
       // If user is branch manager (مدير فرع), only show accounts for their branch
       if (userRole === 'مدير فرع' && user?.branch_id) {
@@ -117,8 +116,16 @@ export default function BankAccounts() {
         }
       }
       // System admin and general manager see all accounts (no filter)
+      
+      query = query.order('account_holder')
 
-      const { data } = await query
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Bank accounts query error:', error)
+        throw error
+      }
+      
       return (data || []) as BankAccountRow[]
     },
   })
