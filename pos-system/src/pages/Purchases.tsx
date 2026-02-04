@@ -63,7 +63,6 @@ export default function Purchases() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const queryClient = useQueryClient()
-  const printRef = useRef<HTMLDivElement>(null)
 
   // Fetch purchases
   const { data: purchasesData } = useQuery<{ purchases: PurchaseRow[]; totalCount: number; totalPages: number }>({
@@ -408,17 +407,25 @@ export default function Purchases() {
 function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('')
+  const [supplierSearch, setSupplierSearch] = useState('')
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState('')
-  const [productSearch, setProductSearch] = useState('')
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [paidAmount, setPaidAmount] = useState('')
-  const [expensesUsd, setExpensesUsd] = useState('')
+  const [paymentType, setPaymentType] = useState<'cash' | 'credit'>('cash')
   const [hasTax, setHasTax] = useState(false)
   const [showBranchSelect, setShowBranchSelect] = useState(false)
-  const [showSupplierSelect, setShowSupplierSelect] = useState(false)
+  const [showSupplierResults, setShowSupplierResults] = useState(false)
+  const [showProductDropdown, setShowProductDropdown] = useState(false)
+  
+  // Additional expenses (optional)
+  const [transportCost, setTransportCost] = useState('')
+  const [shippingCost, setShippingCost] = useState('')
+  const [transferFees, setTransferFees] = useState('')
+  const [customsFees, setCustomsFees] = useState('')
+  const [clearanceFees, setClearanceFees] = useState('')
 
-  // Fetch USD exchange rate
-  const { data: usdRate } = useQuery<number>({
+  // Fetch USD exchange rate (kept for future use)
+  const { data: _usdRate } = useQuery<number>({
     queryKey: ['usd-rate'],
     queryFn: async () => {
       const { data } = await supabase
@@ -428,6 +435,28 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
         .single()
       const value = data ? (data as { value?: string }).value : '50'
       return parseFloat(value || '50')
+    },
+  })
+  
+  // Generate next invoice number
+  const { data: nextInvoiceNumber } = useQuery<string>({
+    queryKey: ['next-purchase-invoice'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('purchases')
+        .select('invoice_number')
+        .order('created_at', { ascending: false })
+        .limit(1)
+      
+      if (data && data.length > 0) {
+        const lastNumber = (data[0] as { invoice_number: string }).invoice_number
+        const match = lastNumber.match(/PUR-(\d+)/)
+        if (match) {
+          const nextNum = parseInt(match[1]) + 1
+          return `PUR-${nextNum.toString().padStart(6, '0')}`
+        }
+      }
+      return 'PUR-000001'
     },
   })
 
@@ -444,34 +473,35 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
     },
   })
 
-  // Fetch suppliers
+  // Fetch suppliers with search
   const { data: suppliers } = useQuery<SupplierRow[]>({
-    queryKey: ['purchase-suppliers'],
+    queryKey: ['purchase-suppliers', supplierSearch],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('suppliers')
         .select('*')
         .eq('status', 'active')
         .order('name_ar')
+      
+      if (supplierSearch) {
+        query = query.or(`name_ar.ilike.%${supplierSearch}%,name.ilike.%${supplierSearch}%,code.ilike.%${supplierSearch}%`)
+      }
+      
+      const { data } = await query.limit(10)
       return (data || []) as SupplierRow[]
     },
   })
 
-  // Fetch products
+  // Fetch products - show all
   const { data: products } = useQuery<ProductRow[]>({
-    queryKey: ['purchase-products', productSearch],
+    queryKey: ['purchase-products'],
     queryFn: async () => {
-      let query = supabase
+      const { data } = await supabase
         .from('products')
         .select('*')
         .eq('status', 'active')
         .order('name_ar')
       
-      if (productSearch) {
-        query = query.or(`code.ilike.%${productSearch}%,name_ar.ilike.%${productSearch}%`)
-      }
-      
-      const { data } = await query.limit(20)
       return (data || []) as ProductRow[]
     },
   })
@@ -481,10 +511,17 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
 
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-  const expensesUsdValue = parseFloat(expensesUsd) || 0
-  const expensesEgp = expensesUsdValue * (usdRate || 50)
-  const totalWithExpenses = subtotal + expensesEgp
-  const paid = parseFloat(paidAmount) || 0
+  
+  // Calculate additional expenses
+  const transport = parseFloat(transportCost) || 0
+  const shipping = parseFloat(shippingCost) || 0
+  const transfer = parseFloat(transferFees) || 0
+  const customs = parseFloat(customsFees) || 0
+  const clearance = parseFloat(clearanceFees) || 0
+  const totalExpenses = transport + shipping + transfer + customs + clearance
+  
+  const totalWithExpenses = subtotal + totalExpenses
+  const paid = paymentType === 'cash' ? totalWithExpenses : (parseFloat(paidAmount) || 0)
   const remaining = totalWithExpenses - paid
 
   // Add product to items
@@ -506,7 +543,7 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
       }
       setItems([...items, newItem])
     }
-    setProductSearch('')
+    setShowProductDropdown(false)
   }
 
   const updateQuantity = (itemId: string, delta: number) => {
@@ -548,10 +585,10 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
       
       if (!userId) throw new Error('المستخدم غير موجود')
 
-      const invoiceNumber = `PUR-${Date.now()}`
+      const invoiceNumber = nextInvoiceNumber || `PUR-${Date.now()}`
 
       // Determine payment status
-      const paymentStatus = remaining > 0 ? 'credit' : 'paid'
+      const paymentStatus = paymentType === 'cash' ? 'paid' : (remaining > 0 ? 'credit' : 'paid')
 
       // Create purchase
       const purchaseData = {
@@ -562,9 +599,14 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
         supplier_id: selectedSupplierId,
         received_by: userId,
         subtotal,
-        expenses_usd: expensesUsdValue || null,
-        expenses_egp: expensesEgp || null,
+        transport_cost: transport || null,
+        shipping_cost: shipping || null,
+        transfer_fees: transfer || null,
+        customs_fees: customs || null,
+        clearance_fees: clearance || null,
+        total_expenses: totalExpenses || null,
         has_tax: hasTax,
+        payment_type: paymentType,
         payment_status: paymentStatus,
         total_amount: totalWithExpenses,
         paid_amount: paid,
@@ -673,33 +715,45 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
           )}
         </div>
 
-        {/* Supplier */}
+        {/* Supplier - Search */}
         <div className="relative">
           <label className="text-sm font-medium mb-2 block">المورد</label>
-          <div 
-            className="flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:bg-muted"
-            onClick={() => setShowSupplierSelect(!showSupplierSelect)}
-          >
-            <User className="h-4 w-4" />
-            <span className="flex-1">
-              {selectedSupplier ? selectedSupplier.name_ar || selectedSupplier.name : 'اختر المورد'}
-            </span>
+          <div className="relative">
+            <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ابحث عن المورد..."
+              value={supplierSearch}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setSupplierSearch(e.target.value)
+                setShowSupplierResults(true)
+              }}
+              onFocus={() => setShowSupplierResults(true)}
+              className="pr-10"
+            />
           </div>
           
-          {showSupplierSelect && (
+          {selectedSupplier && (
+            <div className="mt-2 p-2 bg-muted rounded-md text-sm">
+              <p className="font-medium">{selectedSupplier.name_ar || selectedSupplier.name}</p>
+              <p className="text-xs text-muted-foreground">{selectedSupplier.phone}</p>
+            </div>
+          )}
+          
+          {showSupplierResults && supplierSearch && suppliers && suppliers.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 max-h-60 overflow-auto">
-              {suppliers?.map((supplier) => (
+              {suppliers.map((supplier) => (
                 <button
                   type="button"
                   key={supplier.id}
                   className="w-full p-3 text-right hover:bg-muted"
                   onClick={() => { 
                     setSelectedSupplierId(supplier.id)
-                    setShowSupplierSelect(false)
+                    setSupplierSearch(supplier.name_ar || supplier.name || '')
+                    setShowSupplierResults(false)
                   }}
                 >
                   <p className="font-medium">{supplier.name_ar || supplier.name}</p>
-                  <p className="text-xs text-muted-foreground">{supplier.phone}</p>
+                  <p className="text-xs text-muted-foreground">{supplier.code} - {supplier.phone}</p>
                 </button>
               ))}
             </div>
@@ -707,67 +761,112 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
         </div>
       </div>
 
-      {/* Supplier Invoice Number and Tax */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Invoice Details */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Auto Invoice Number */}
         <div>
-          <label className="text-sm font-medium mb-2 block">رقم فاتورة المورد (اختياري)</label>
+          <label className="text-sm font-medium mb-2 block">رقم الفاتورة</label>
           <Input
-            value={supplierInvoiceNumber}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setSupplierInvoiceNumber(e.target.value)}
-            placeholder="رقم فاتورة المورد"
+            value={nextInvoiceNumber || 'جاري التحميل...'}
+            disabled
+            className="bg-muted"
           />
         </div>
         
+        {/* Supplier Invoice Number */}
         <div>
-          <label className="text-sm font-medium mb-2 block">نوع الفاتورة</label>
-          <div className="flex items-center gap-4 h-10">
+          <label className="text-sm font-medium mb-2 block">رقم فاتورة المورد (اختياري)</label>
+          <Input
+            placeholder="رقم فاتورة المورد..."
+            value={supplierInvoiceNumber}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSupplierInvoiceNumber(e.target.value)}
+          />
+        </div>
+        
+        {/* Payment Type */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">نوع الدفع</label>
+          <div className="flex gap-4 items-center h-10">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
-                checked={!hasTax}
-                onChange={() => setHasTax(false)}
-                className="w-4 h-4"
+                value="cash"
+                checked={paymentType === 'cash'}
+                onChange={() => setPaymentType('cash')}
+                className="cursor-pointer"
               />
-              <span>بدون ضريبة</span>
+              <span>نقدي</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
-                checked={hasTax}
-                onChange={() => setHasTax(true)}
-                className="w-4 h-4"
+                value="credit"
+                checked={paymentType === 'credit'}
+                onChange={() => setPaymentType('credit')}
+                className="cursor-pointer"
               />
-              <span>بضريبة</span>
+              <span>آجل</span>
             </label>
           </div>
         </div>
       </div>
 
-      {/* Product Search */}
+      {/* Tax Type */}
       <div>
+        <label className="text-sm font-medium mb-2 block">نوع الفاتورة</label>
+        <div className="flex gap-4 items-center">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={hasTax}
+              onChange={() => setHasTax(true)}
+              className="cursor-pointer"
+            />
+            <span>بضريبة</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={!hasTax}
+              onChange={() => setHasTax(false)}
+              className="cursor-pointer"
+            />
+            <span>بدون ضريبة</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Product Dropdown */}
+      <div className="relative">
         <label className="text-sm font-medium mb-2 block">إضافة منتجات</label>
-        <Input
-          value={productSearch}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setProductSearch(e.target.value)}
-          placeholder="بحث عن منتج..."
-          disabled={!selectedBranchId}
-        />
-        {productSearch && products && products.length > 0 && (
-          <div className="mt-2 border rounded-md max-h-40 overflow-auto">
-            {products.map((product) => (
-              <button
-                type="button"
-                key={product.id}
-                className="w-full p-2 text-right hover:bg-muted flex justify-between items-center"
-                onClick={() => addProduct(product)}
-              >
-                <div>
-                  <p className="font-medium">{product.name_ar}</p>
-                  <p className="text-xs text-muted-foreground">{product.code}</p>
-                </div>
-                <p className="text-sm">{formatCurrency(product.purchase_price || 0)}</p>
-              </button>
-            ))}
+        <div 
+          className="flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:bg-muted"
+          onClick={() => setShowProductDropdown(!showProductDropdown)}
+        >
+          <ShoppingBag className="h-4 w-4" />
+          <span className="flex-1">اختر منتج لإضافته</span>
+        </div>
+        
+        {showProductDropdown && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 max-h-60 overflow-auto">
+            {products && products.length > 0 ? (
+              products.map((product) => (
+                <button
+                  type="button"
+                  key={product.id}
+                  className="w-full p-3 text-right hover:bg-muted flex justify-between items-center"
+                  onClick={() => addProduct(product)}
+                >
+                  <div>
+                    <p className="font-medium">{product.name_ar}</p>
+                    <p className="text-xs text-muted-foreground">{product.code}</p>
+                  </div>
+                  <p className="text-sm font-medium">{formatCurrency(product.purchase_price || 0)}</p>
+                </button>
+              ))
+            ) : (
+              <p className="p-3 text-center text-muted-foreground">لا توجد منتجات</p>
+            )}
           </div>
         )}
       </div>
@@ -831,26 +930,81 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
           <span className="font-bold">{formatCurrency(subtotal)}</span>
         </div>
 
-        {/* Expenses in USD */}
-        <div className="border rounded-lg p-3 bg-blue-50">
-          <label className="text-sm font-medium mb-2 block">إجمالي المصاريف (بالدولار)</label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              step="0.01"
-              value={expensesUsd}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setExpensesUsd(e.target.value)}
-              className="flex-1 h-10"
-              placeholder="0.00"
-            />
-            <span className="text-sm font-medium">$</span>
+        {/* Optional Additional Expenses */}
+        <div className="border rounded-lg p-4 bg-blue-50 space-y-3">
+          <h4 className="font-medium text-sm mb-2">مصروفات إضافية (اختيارية)</h4>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Transport */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">نقل</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={transportCost}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setTransportCost(e.target.value)}
+                placeholder="0.00"
+                className="h-9"
+              />
+            </div>
+            
+            {/* Shipping */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">شحن</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={shippingCost}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setShippingCost(e.target.value)}
+                placeholder="0.00"
+                className="h-9"
+              />
+            </div>
+            
+            {/* Transfer Fees */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">رسوم تحويل</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={transferFees}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setTransferFees(e.target.value)}
+                placeholder="0.00"
+                className="h-9"
+              />
+            </div>
+            
+            {/* Customs */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">جمارك</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={customsFees}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomsFees(e.target.value)}
+                placeholder="0.00"
+                className="h-9"
+              />
+            </div>
+            
+            {/* Clearance */}
+            <div className="sm:col-span-2">
+              <label className="text-xs text-muted-foreground mb-1 block">أتعاب مخلص</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={clearanceFees}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setClearanceFees(e.target.value)}
+                placeholder="0.00"
+                className="h-9"
+              />
+            </div>
           </div>
-          {expensesUsdValue > 0 && (
-            <div className="mt-2 flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                بالجنيه المصري (سعر الدولار: {usdRate || 50} جنيه)
-              </span>
-              <span className="font-bold text-blue-700">{formatCurrency(expensesEgp)}</span>
+          
+          {totalExpenses > 0 && (
+            <div className="flex justify-between text-sm font-medium border-t pt-2">
+              <span>إجمالي المصروفات</span>
+              <span className="text-blue-700">{formatCurrency(totalExpenses)}</span>
             </div>
           )}
         </div>
@@ -860,21 +1014,30 @@ function NewPurchaseForm({ onClose, onSuccess }: { onClose: () => void; onSucces
           <span className="text-primary">{formatCurrency(totalWithExpenses)}</span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <span className="text-sm">المدفوع</span>
-          <Input
-            type="number"
-            value={paidAmount}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setPaidAmount(e.target.value)}
-            className="flex-1 h-10"
-            placeholder="0"
-          />
-        </div>
+        {paymentType === 'credit' && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm">المدفوع</span>
+            <Input
+              type="number"
+              value={paidAmount}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPaidAmount(e.target.value)}
+              className="flex-1 h-10"
+              placeholder="0"
+            />
+          </div>
+        )}
+        
+        {paymentType === 'cash' && (
+          <div className="flex justify-between text-green-600">
+            <span>مدفوع نقداً</span>
+            <span className="font-bold">{formatCurrency(totalWithExpenses)}</span>
+          </div>
+        )}
 
-        {remaining > 0 && (
+        {remaining > 0 && paymentType === 'credit' && (
           <div className="flex justify-between text-destructive">
             <span>المتبقي</span>
-            <span>{formatCurrency(remaining)}</span>
+            <span className="font-bold">{formatCurrency(remaining)}</span>
           </div>
         )}
       </div>
@@ -1206,10 +1369,10 @@ function PrintPurchase({ purchaseId, onClose }: { purchaseId: string; onClose: (
           <div className="max-h-[60vh] overflow-auto border rounded">
             <PurchaseInvoicePrint
               ref={printRef}
-              purchase={purchase}
-              items={items}
-              supplier={purchase.supplier}
-              branch={purchase.branch}
+              purchase={purchase as never}
+              items={items as never}
+              supplier={(purchase as { supplier?: { name?: string; name_ar?: string } }).supplier}
+              branch={(purchase as { branch?: { name_ar?: string } }).branch}
             />
           </div>
           <div className="flex gap-2 justify-end">
