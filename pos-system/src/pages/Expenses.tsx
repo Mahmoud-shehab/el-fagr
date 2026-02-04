@@ -16,6 +16,9 @@ interface ExpenseRow {
   branch_id: string
   category_id: string
   amount: number
+  currency?: string
+  exchange_rate?: number
+  amount_egp?: number
   payment_method: string
   payment_status: string
   reference_number?: string
@@ -49,6 +52,9 @@ export default function Expenses() {
     branch_id: '',
     category_id: '',
     amount: '',
+    currency: 'EGP',
+    exchange_rate: '1',
+    amount_egp: '',
     payment_method: 'cash',
     payment_status: 'paid',
     reference_number: '',
@@ -56,6 +62,27 @@ export default function Expenses() {
   })
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+
+  // Fetch USD exchange rate
+  const { data: usdRate } = useQuery<number>({
+    queryKey: ['usd-rate'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'usd_exchange_rate')
+        .single()
+      const value = data ? (data as { value?: string }).value : '50'
+      return parseFloat(value || '50')
+    },
+  })
+
+  // Calculate amount in EGP when currency or amount changes
+  const calculateAmountEGP = () => {
+    const amount = parseFloat(formData.amount) || 0
+    const rate = parseFloat(formData.exchange_rate) || 1
+    return amount * rate
+  }
 
   // Fetch branches
   const { data: branches } = useQuery<BranchRow[]>({
@@ -105,10 +132,10 @@ export default function Expenses() {
     },
   })
 
-  // Calculate totals
-  const totalExpenses = expenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0
-  const paidExpenses = expenses?.filter(exp => exp.payment_status === 'paid').reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0
-  const pendingExpenses = expenses?.filter(exp => exp.payment_status === 'pending').reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0
+  // Calculate totals (using amount_egp for foreign currencies)
+  const totalExpenses = expenses?.reduce((sum, exp) => sum + (exp.amount_egp || exp.amount || 0), 0) || 0
+  const paidExpenses = expenses?.filter(exp => exp.payment_status === 'paid').reduce((sum, exp) => sum + (exp.amount_egp || exp.amount || 0), 0) || 0
+  const pendingExpenses = expenses?.filter(exp => exp.payment_status === 'pending').reduce((sum, exp) => sum + (exp.amount_egp || exp.amount || 0), 0) || 0
 
   // Create expense mutation
   const createMutation = useMutation({
@@ -119,12 +146,17 @@ export default function Expenses() {
       const { data: users } = await supabase.from('users').select('id').limit(1)
       const userId = (users as { id: string }[] | null)?.[0]?.id
 
+      const amountEGP = calculateAmountEGP()
+
       const { error } = await supabase.from('expenses').insert({
         expense_number: expenseNumber,
         expense_date: formData.expense_date,
         branch_id: formData.branch_id,
         category_id: formData.category_id,
         amount: parseFloat(formData.amount),
+        currency: formData.currency,
+        exchange_rate: parseFloat(formData.exchange_rate),
+        amount_egp: amountEGP,
         payment_method: formData.payment_method,
         payment_status: formData.payment_status,
         reference_number: formData.reference_number || null,
@@ -142,6 +174,9 @@ export default function Expenses() {
         branch_id: '',
         category_id: '',
         amount: '',
+        currency: 'EGP',
+        exchange_rate: '1',
+        amount_egp: '',
         payment_method: 'cash',
         payment_status: 'paid',
         reference_number: '',
@@ -248,11 +283,53 @@ export default function Expenses() {
               <label className="text-sm font-medium">المبلغ *</label>
               <Input
                 type="number"
+                step="0.01"
                 value={formData.amount}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, amount: e.target.value})}
                 placeholder="0.00"
               />
             </div>
+            <div>
+              <label className="text-sm font-medium">العملة</label>
+              <select
+                value={formData.currency}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                  const currency = e.target.value
+                  const rate = currency === 'USD' ? (usdRate || 50).toString() : '1'
+                  setFormData({...formData, currency, exchange_rate: rate})
+                }}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="EGP">جنيه مصري (EGP)</option>
+                <option value="USD">دولار أمريكي (USD)</option>
+                <option value="EUR">يورو (EUR)</option>
+                <option value="SAR">ريال سعودي (SAR)</option>
+                <option value="AED">درهم إماراتي (AED)</option>
+              </select>
+            </div>
+            {formData.currency !== 'EGP' && (
+              <>
+                <div>
+                  <label className="text-sm font-medium">سعر الصرف (مقابل الجنيه)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.exchange_rate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, exchange_rate: e.target.value})}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">المبلغ بالجنيه المصري</label>
+                  <Input
+                    type="number"
+                    value={calculateAmountEGP().toFixed(2)}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </>
+            )}
             <div>
               <label className="text-sm font-medium">طريقة الدفع</label>
               <select
@@ -397,7 +474,21 @@ export default function Expenses() {
                       <td className="py-3 px-2">{new Date(expense.expense_date).toLocaleDateString('ar-EG')}</td>
                       <td className="py-3 px-2">{expense.branch?.name_ar}</td>
                       <td className="py-3 px-2">{expense.category?.name_ar}</td>
-                      <td className="py-3 px-2 font-bold">{formatCurrency(expense.amount || 0)}</td>
+                      <td className="py-3 px-2">
+                        <div className="flex flex-col">
+                          <span className="font-bold">
+                            {expense.currency && expense.currency !== 'EGP' 
+                              ? `${expense.amount?.toFixed(2)} ${expense.currency}`
+                              : formatCurrency(expense.amount || 0)
+                            }
+                          </span>
+                          {expense.currency && expense.currency !== 'EGP' && expense.amount_egp && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formatCurrency(expense.amount_egp)})
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-2">
                         <span className="text-sm">
                           {expense.payment_method === 'cash' && 'نقدي'}
@@ -455,7 +546,19 @@ export default function Expenses() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">المبلغ:</span>
-                        <span className="font-bold text-primary">{formatCurrency(expense.amount || 0)}</span>
+                        <div className="text-left">
+                          <span className="font-bold text-primary">
+                            {expense.currency && expense.currency !== 'EGP' 
+                              ? `${expense.amount?.toFixed(2)} ${expense.currency}`
+                              : formatCurrency(expense.amount || 0)
+                            }
+                          </span>
+                          {expense.currency && expense.currency !== 'EGP' && expense.amount_egp && (
+                            <div className="text-xs text-muted-foreground">
+                              ({formatCurrency(expense.amount_egp)})
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">طريقة الدفع:</span>
