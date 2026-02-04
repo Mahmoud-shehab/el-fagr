@@ -6,7 +6,8 @@ import {
   DollarSign, FileText, PackageCheck, Receipt, Menu, X
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/dashboard' },
@@ -32,6 +33,22 @@ export default function Sidebar() {
   const location = useLocation()
   const { user, logout } = useAuthStore()
   const [isOpen, setIsOpen] = useState(false)
+  const [companyName, setCompanyName] = useState('الفجر الجديد')
+
+  useEffect(() => {
+    const fetchCompanyName = async () => {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'company_name')
+        .single()
+      
+      if (data?.value) {
+        setCompanyName(data.value)
+      }
+    }
+    fetchCompanyName()
+  }, [])
 
   return (
     <>
@@ -39,8 +56,8 @@ export default function Sidebar() {
       {!isOpen && (
         <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-40 p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-10 h-10 rounded-lg object-contain" />
-            <h1 className="text-base font-bold text-primary">الفجر الجديدة</h1>
+            <img src="/el-fagr/logo.jpg" alt={companyName} className="w-10 h-10 rounded-lg object-contain" />
+            <h1 className="text-base font-bold text-primary">{companyName}</h1>
           </div>
           <button
             onClick={() => setIsOpen(true)}
@@ -75,9 +92,9 @@ export default function Sidebar() {
         </button>
         
         <div className="flex items-center gap-3">
-          <img src="/el-fagr/logo.jpg" alt="الفجر الجديدة" className="w-12 h-12 rounded-lg object-contain" />
+          <img src="/el-fagr/logo.jpg" alt={companyName} className="w-12 h-12 rounded-lg object-contain" />
           <div>
-            <h1 className="text-xl font-bold text-primary">الفجر الجديدة</h1>
+            <h1 className="text-xl font-bold text-primary">{companyName}</h1>
             <p className="text-sm text-muted-foreground">{user?.branch?.name_ar || 'المخزن الرئيسي'}</p>
           </div>
         </div>
