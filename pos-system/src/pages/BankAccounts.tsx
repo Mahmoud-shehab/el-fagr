@@ -97,9 +97,24 @@ export default function BankAccounts() {
         .eq('is_active', true)
         .order('account_name')
       
+      const userRole = user?.role?.name_ar || user?.role?.name
+      
       // If user is branch manager, only show accounts for their branch
       if (user?.branch_id) {
         query = query.eq('branch_id', user.branch_id)
+      }
+      // If user is accountant (محاسب), only show accounts for "الشركة" branch
+      else if (userRole === 'محاسب') {
+        // Get الشركة branch ID
+        const { data: companyBranch } = await supabase
+          .from('branches')
+          .select('id')
+          .eq('name_ar', 'الشركة')
+          .single()
+        
+        if (companyBranch) {
+          query = query.eq('branch_id', (companyBranch as { id: string }).id)
+        }
       }
 
       const { data } = await query
