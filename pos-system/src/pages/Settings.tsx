@@ -1,14 +1,16 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, ChangeEvent } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { Building2, Users, Tag, Boxes, Palette, Settings as SettingsIcon, Save } from 'lucide-react'
+import { Building2, Users, Tag, Boxes, Palette, Settings as SettingsIcon, Save, Plus } from 'lucide-react'
 
 interface SettingRow { id: string; key: string; value?: string; description?: string }
 interface BranchRow { id: string; code: string; name_ar: string; branch_type?: string; phone?: string; status?: string }
 interface UserRow { id: string; employee_code: string; full_name: string; username: string; role?: { name_ar?: string }; branch?: { name_ar?: string }; status?: string }
+interface RoleRow { id: string; name_ar: string; name: string }
 interface CategoryRow { id: string; code: string; name_ar: string; is_active?: boolean }
 interface BrandRow { id: string; code: string; name: string; is_active?: boolean }
 interface UnitRow { id: string; code: string; name_ar: string; is_active?: boolean }
@@ -236,6 +238,20 @@ function BranchesSettings() {
 }
 
 function UsersSettings() {
+  const [showDialog, setShowDialog] = useState(false)
+  const [formData, setFormData] = useState({
+    employee_code: '',
+    full_name: '',
+    full_name_ar: '',
+    username: '',
+    password: '',
+    role_id: '',
+    branch_id: '',
+    phone: '',
+    email: '',
+  })
+  const queryClient = useQueryClient()
+
   const { data: users } = useQuery<UserRow[]>({
     queryKey: ['users-settings'],
     queryFn: async () => {
@@ -244,13 +260,179 @@ function UsersSettings() {
     },
   })
 
+  // Fetch roles
+  const { data: roles } = useQuery<RoleRow[]>({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const { data } = await supabase.from('roles').select('*').order('name_ar')
+      return (data || []) as RoleRow[]
+    },
+  })
+
+  // Fetch branches
+  const { data: branches } = useQuery<BranchRow[]>({
+    queryKey: ['branches-for-users'],
+    queryFn: async () => {
+      const { data } = await supabase.from('branches').select('*').eq('status', 'active').order('name_ar')
+      return (data || []) as BranchRow[]
+    },
+  })
+
+  // Create user mutation
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      // Generate employee code if not provided
+      const employeeCode = formData.employee_code || `EMP-${Date.now()}`
+
+      const { error } = await supabase.from('users').insert({
+        employee_code: employeeCode,
+        full_name: formData.full_name,
+        full_name_ar: formData.full_name_ar,
+        username: formData.username,
+        password: formData.password, // In production, this should be hashed
+        role_id: formData.role_id,
+        branch_id: formData.branch_id || null,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        status: 'active',
+      } as never)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-settings'] })
+      setShowDialog(false)
+      setFormData({
+        employee_code: '',
+        full_name: '',
+        full_name_ar: '',
+        username: '',
+        password: '',
+        role_id: '',
+        branch_id: '',
+        phone: '',
+        email: '',
+      })
+      alert('تم إضافة المستخدم بنجاح!')
+    },
+    onError: (err) => alert('خطأ: ' + err.message),
+  })
+
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <CardTitle className="text-base sm:text-lg">المستخدمين</CardTitle>
-        <Button size="sm" className="w-full sm:w-auto">إضافة مستخدم</Button>
+        <Button size="sm" onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 ml-2" />
+          إضافة مستخدم
+        </Button>
       </CardHeader>
       <CardContent>
+        {/* Add User Dialog */}
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogContent onClose={() => setShowDialog(false)} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg">إضافة مستخدم جديد</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">كود الموظف</label>
+                <Input
+                  value={formData.employee_code}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, employee_code: e.target.value})}
+                  placeholder="سيتم إنشاؤه تلقائياً"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">الاسم بالعربي *</label>
+                <Input
+                  value={formData.full_name_ar}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, full_name_ar: e.target.value})}
+                  placeholder="الاسم الكامل بالعربي"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">الاسم بالإنجليزي *</label>
+                <Input
+                  value={formData.full_name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, full_name: e.target.value})}
+                  placeholder="Full Name"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">اسم المستخدم *</label>
+                <Input
+                  value={formData.username}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, username: e.target.value})}
+                  placeholder="username"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">كلمة المرور *</label>
+                <Input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, password: e.target.value})}
+                  placeholder="********"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">الدور *</label>
+                <select
+                  value={formData.role_id}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, role_id: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="">اختر الدور</option>
+                  {roles?.map((role) => (
+                    <option key={role.id} value={role.id}>{role.name_ar}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">الفرع</label>
+                <select
+                  value={formData.branch_id}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, branch_id: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="">الكل</option>
+                  {branches?.map((branch) => (
+                    <option key={branch.id} value={branch.id}>{branch.name_ar}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">رقم الهاتف</label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="01xxxxxxxxx"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">البريد الإلكتروني</label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, email: e.target.value})}
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">إلغاء</Button>
+              <Button
+                onClick={() => createMutation.mutate()}
+                disabled={!formData.full_name || !formData.full_name_ar || !formData.username || !formData.password || !formData.role_id || createMutation.isPending}
+                className="w-full sm:w-auto"
+              >
+                {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs sm:text-sm">
